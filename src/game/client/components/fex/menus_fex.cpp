@@ -3887,137 +3887,133 @@ void CMenus::RenderUpdateLogs(CUIRect MainView)
 
 void CMenus::RenderSettingsQuickActions(CUIRect MainView)
 {
-    CUIRect LeftView, RightView;
-    MainView.HSplitTop(5.0f, nullptr, &MainView);
-    MainView.VSplitLeft(MainView.w / 2.1f, &LeftView, &RightView);
+	CActions &Actions = GameClient()->m_FexQuickActions;
 
-    const float Radius = minimum(RightView.w, RightView.h) / 2.0f;
-    vec2 Pos = vec2(RightView.x + RightView.w / 2.0f, RightView.y + RightView.h / 2.0f);
+	static int s_PageIndex = 0;
+	static char s_aNewPageName[ACTION_PAGE_MAX_NAME] = "";
+	static CLineInput s_NewPageInput;
+	static CLineInput s_PageNameInput;
+	static CLineInput s_aActionNameInputs[MAX_ACTIONS_PER_PAGE];
+	static CLineInput s_aActionCommandInputs[MAX_ACTIONS_PER_PAGE];
+	static CButtonContainer s_PrevButton, s_NextButton;
+	static CButtonContainer s_AddPageButton, s_RemovePageButton, s_AddActionButton;
+	static CButtonContainer s_aRemoveActionButtons[MAX_ACTIONS_PER_PAGE];
+	const char *apActionKeyNames[MAX_ACTIONS_PER_PAGE] = {"F", "D", "A"};
 
-    Graphics()->TextureClear();
-    Graphics()->QuadsBegin();
-    Graphics()->SetColor(0.0f, 0.0f, 0.0f, 0.3f);
-    Graphics()->DrawCircle(Pos.x, Pos.y, Radius, 64);
-    Graphics()->QuadsEnd();
+	// Only clamp the selection here. Adding pages from the render path is what
+	// used to append a "New Page" every frame and reset the selection.
+	if(Actions.NumPages() <= 0)
+		return;
+	if(s_PageIndex >= Actions.NumPages())
+		s_PageIndex = Actions.NumPages() - 1;
+	if(s_PageIndex < 0)
+		s_PageIndex = 0;
 
-    static int s_SelectedPageIndex = 0;
-    static char s_aPageName[ACTION_PAGE_MAX_NAME];
-    static char s_aActionName[ACTION_MAX_NAME];
-    static char s_aActionCommand[ACTION_MAX_CMD];
-	
-	if(GameClient()->m_FexQuickActions.m_NumPages > 3)
-    	s_SelectedPageIndex = 3;
-	else
+	CUIRect LeftView, RightView;
+	MainView.HSplitTop(5.0f, nullptr, &MainView);
+	MainView.VSplitLeft(MainView.w / 2.1f, &LeftView, &RightView);
+
+	SPage *pPage = Actions.Page(s_PageIndex);
+	if(!pPage)
+		return;
+
+	// Live preview through the same renderer the HUD uses.
+	const float PreviewRadius = maximum(minimum(RightView.w, RightView.h) / 2.0f - 8.0f, 24.0f);
+	const vec2 PreviewCenter(RightView.x + RightView.w / 2.0f, RightView.y + RightView.h / 2.0f);
+	Actions.RenderPage(PreviewCenter, PreviewRadius, s_PageIndex, 1.0f, 1.0f);
+
+	const float Spacing = 4.0f;
+	const float InputHeight = LineSize;
+	const float LabelHeight = LineSize * 0.8f;
+
+	CUIRect Row, PrevRect, NextRect, PageLabelRect, LabelRect, EditRect;
+	LeftView.HSplitTop(InputHeight, &Row, &LeftView);
+	Row.VSplitLeft(Row.w * 0.33f, &PrevRect, &Row);
+	Row.VSplitRight(Row.w * 0.33f, &NextRect, &PageLabelRect);
+	PrevRect.VSplitRight(Spacing / 2.0f, &PrevRect, nullptr);
+	NextRect.VSplitLeft(Spacing / 2.0f, nullptr, &NextRect);
+
+	if(DoButton_Menu(&s_PrevButton, "< Page", 0, &PrevRect))
+		s_PageIndex = (s_PageIndex - 1 + Actions.NumPages()) % Actions.NumPages();
+	if(DoButton_Menu(&s_NextButton, "Page >", 0, &NextRect))
+		s_PageIndex = (s_PageIndex + 1) % Actions.NumPages();
+
+	char aPageLabel[32];
+	str_format(aPageLabel, sizeof(aPageLabel), "%d / %d", s_PageIndex + 1, Actions.NumPages());
+	Ui()->DoLabel(&PageLabelRect, aPageLabel, 12.0f, TEXTALIGN_MC);
+
+	pPage = Actions.Page(s_PageIndex);
+	if(!pPage)
+		return;
+
+	LeftView.HSplitTop(Spacing, nullptr, &LeftView);
+	LeftView.HSplitTop(LabelHeight, &LabelRect, &LeftView);
+	Ui()->DoLabel(&LabelRect, "Page name", 11.0f, TEXTALIGN_ML);
+	LeftView.HSplitTop(InputHeight, &EditRect, &LeftView);
+	s_PageNameInput.SetBuffer(pPage->m_aName, ACTION_PAGE_MAX_NAME);
+	Ui()->DoEditBox(&s_PageNameInput, &EditRect, 12.0f);
+
+	LeftView.HSplitTop(Spacing, nullptr, &LeftView);
+	CUIRect NewPageRect, AddPageRect, RemovePageRect;
+	LeftView.HSplitTop(InputHeight, &Row, &LeftView);
+	Row.VSplitLeft(Row.w * 0.4f, &NewPageRect, &Row);
+	Row.VSplitLeft(Spacing, nullptr, &Row);
+	Row.VSplitMid(&AddPageRect, &RemovePageRect);
+	AddPageRect.VSplitRight(Spacing / 2.0f, &AddPageRect, nullptr);
+	RemovePageRect.VSplitLeft(Spacing / 2.0f, nullptr, &RemovePageRect);
+
+	s_NewPageInput.SetBuffer(s_aNewPageName, sizeof(s_aNewPageName));
+	Ui()->DoEditBox(&s_NewPageInput, &NewPageRect, 12.0f);
+	if(DoButton_Menu(&s_AddPageButton, "Add Page", 0, &AddPageRect))
 	{
-		s_SelectedPageIndex = GameClient()->m_FexQuickActions.m_NumPages;
-		GameClient()->m_FexQuickActions.AddPage("New Page");
+		if(Actions.AddPage(s_aNewPageName))
+		{
+			s_aNewPageName[0] = '\0';
+			s_PageIndex = Actions.NumPages() - 1;
+		}
+	}
+	if(DoButton_Menu(&s_RemovePageButton, "Remove Page", 0, &RemovePageRect))
+	{
+		Actions.RemovePage(s_PageIndex);
+		s_PageIndex = std::clamp(s_PageIndex, 0, maximum(0, Actions.NumPages() - 1));
 	}
 
+	pPage = Actions.Page(s_PageIndex);
+	if(!pPage)
+		return;
 
-    SPage *pPage = &GameClient()->m_FexQuickActions.m_aPages[s_SelectedPageIndex];
+	for(int i = 0; i < MAX_ACTIONS_PER_PAGE; i++)
+	{
+		const bool Exists = i < pPage->m_NumActions;
 
-    float PageTextWidth = TextRender()->TextWidth(16.0f, pPage->m_aName);
-    TextRender()->Text(Pos.x - PageTextWidth / 2, Pos.y - 10, 16.0f, pPage->m_aName);
+		LeftView.HSplitTop(Spacing, nullptr, &LeftView);
+		LeftView.HSplitTop(LabelHeight, &LabelRect, &LeftView);
+		char aCaption[64];
+		str_format(aCaption, sizeof(aCaption), "Action %d  [key %s]%s", i + 1, apActionKeyNames[i], Exists ? "" : "  (empty)");
+		Ui()->DoLabel(&LabelRect, aCaption, 11.0f, TEXTALIGN_ML);
 
-    int NumActions = pPage->m_NumActions;
-    if(NumActions <= 0)
-        NumActions = 3;
+		CUIRect NameRow, RemoveRect;
+		LeftView.HSplitTop(InputHeight, &NameRow, &LeftView);
+		NameRow.VSplitRight(InputHeight * 1.6f, &NameRow, &RemoveRect);
+		s_aActionNameInputs[i].SetBuffer(pPage->m_aActions[i].m_aName, ACTION_MAX_NAME);
+		Ui()->DoEditBox(&s_aActionNameInputs[i], &NameRow, 12.0f);
+		if(Exists && DoButton_Menu(&s_aRemoveActionButtons[i], "x", 0, &RemoveRect))
+			Actions.RemoveAction(s_PageIndex, i);
 
-    const float InnerRadius = 30.0f;
-
-    for(int i = 0; i < NumActions; i++)
-    {
-        float Angle = (i * 2.0f * pi / NumActions) - pi / 2;
-        float midAngle = Angle + (pi / NumActions);
-
-        vec2 IconPos = Pos + vec2(cos(midAngle) * ((Radius + InnerRadius) / 2.0f), sin(midAngle) * ((Radius + InnerRadius) / 2.0f));
-
-        const char *pActionText = pPage->m_aActions[i].m_aName;
-        if(!pActionText || pActionText[0] == '\0')
-        {
-            pActionText = "Empty";
-        }
-
-        float thisFontSize = 8.0f;
-        float TextWidth = TextRender()->TextWidth(thisFontSize, pActionText, -1, -1.0f);
-        TextRender()->TextColor(1.f, 1.f, 1.f, 1.f);
-        TextRender()->Text(IconPos.x - TextWidth / 2, IconPos.y - 6, thisFontSize, pActionText, -1.0f);
-        TextRender()->TextColor(TextRender()->DefaultTextColor());
-    }
-
-	float Spacing = 5.0f;
-	float InputHeight = LineSize;
-
-	LeftView.HSplitTop(Margin, nullptr, &LeftView);
-
-	CUIRect NavRow, PrevButtonRect, NextButtonRect;
-	LeftView.HSplitTop(InputHeight, &NavRow, &LeftView);
-	NavRow.VSplitMid(&PrevButtonRect, &NextButtonRect);
-	PrevButtonRect.VSplitRight(Spacing / 2, &PrevButtonRect, nullptr);
-	NextButtonRect.VSplitLeft(Spacing / 2, nullptr, &NextButtonRect);
-
-	static CButtonContainer s_PrevButton;
-	if(DoButton_Menu(&s_PrevButton, "Previous Page", 0, &PrevButtonRect))
-		s_SelectedPageIndex = (s_SelectedPageIndex - 1 + GameClient()->m_FexQuickActions.m_NumPages) % GameClient()->m_FexQuickActions.m_NumPages;
-
-	static CButtonContainer s_NextButton;
-	if(DoButton_Menu(&s_NextButton, "Next Page", 0, &NextButtonRect))
-		s_SelectedPageIndex = (s_SelectedPageIndex + 1) % GameClient()->m_FexQuickActions.m_NumPages;
-
-	LeftView.HSplitTop(Margin, nullptr, &LeftView);
-
-	CUIRect LabelRect, EditRect;
-	LeftView.HSplitTop(InputHeight, &LabelRect, &LeftView);
-	Ui()->DoLabel(&LabelRect, "Page Name:", 14.0f, TEXTALIGN_ML);
-	LeftView.HSplitTop(InputHeight, &EditRect, &LeftView);
-	static CLineInput s_PageInput;
-	s_PageInput.SetBuffer(s_aPageName, sizeof(s_aPageName));
-	Ui()->DoEditBox(&s_PageInput, &EditRect, 12.0f);
-
-	CUIRect PageBtns;
-	LeftView.HSplitTop(Spacing, nullptr, &LeftView);
-	LeftView.HSplitTop(InputHeight, &PageBtns, &LeftView);
-
-	CUIRect AddPageRect, RemovePageRect;
-	PageBtns.VSplitMid(&AddPageRect, &RemovePageRect);
-	AddPageRect.VSplitRight(Spacing / 2, &AddPageRect, nullptr);
-	RemovePageRect.VSplitLeft(Spacing / 2, nullptr, &RemovePageRect);
-
-	static CButtonContainer s_AddPageButton, s_RemovePageButton;
-	if(DoButton_Menu(&s_AddPageButton, "Add Page", 0, &AddPageRect))
-		GameClient()->m_FexQuickActions.AddPage(s_aPageName);
-	if(DoButton_Menu(&s_RemovePageButton, "Remove Page", 0, &RemovePageRect))
-		GameClient()->m_FexQuickActions.RemovePage(s_SelectedPageIndex);
-
-	LeftView.HSplitTop(Margin, nullptr, &LeftView);
-
-	LeftView.HSplitTop(InputHeight, &LabelRect, &LeftView);
-	Ui()->DoLabel(&LabelRect, "Action Name:", 14.0f, TEXTALIGN_ML);
-	LeftView.HSplitTop(InputHeight, &EditRect, &LeftView);
-	static CLineInput s_ActionInput;
-	s_ActionInput.SetBuffer(s_aActionName, sizeof(s_aActionName));
-	Ui()->DoEditBox(&s_ActionInput, &EditRect, 12.0f);
+		LeftView.HSplitTop(InputHeight, &EditRect, &LeftView);
+		s_aActionCommandInputs[i].SetBuffer(pPage->m_aActions[i].m_aCommand, ACTION_MAX_CMD);
+		Ui()->DoEditBox(&s_aActionCommandInputs[i], &EditRect, 12.0f);
+	}
 
 	LeftView.HSplitTop(Spacing, nullptr, &LeftView);
-	LeftView.HSplitTop(InputHeight, &LabelRect, &LeftView);
-	Ui()->DoLabel(&LabelRect, "Action Command:", 14.0f, TEXTALIGN_ML);
-	LeftView.HSplitTop(InputHeight, &EditRect, &LeftView);
-	static CLineInput s_CommandInput;
-	s_CommandInput.SetBuffer(s_aActionCommand, sizeof(s_aActionCommand));
-	Ui()->DoEditBox(&s_CommandInput, &EditRect, 12.0f);
+	LeftView.HSplitTop(InputHeight, &Row, &LeftView);
+	if(pPage->m_NumActions < MAX_ACTIONS_PER_PAGE)
+	{
+		if(DoButton_Menu(&s_AddActionButton, "Add Action", 0, &Row))
+			Actions.AddAction(s_PageIndex, nullptr, nullptr);
+	}
 
-	CUIRect ActionBtns;
 	LeftView.HSplitTop(Spacing, nullptr, &LeftView);
-	LeftView.HSplitTop(InputHeight, &ActionBtns, &LeftView);
-
-	CUIRect AddActionRect, RemoveActionRect;
-	ActionBtns.VSplitMid(&AddActionRect, &RemoveActionRect);
-	AddActionRect.VSplitRight(Spacing / 2, &AddActionRect, nullptr);
-	RemoveActionRect.VSplitLeft(Spacing / 2, nullptr, &RemoveActionRect);
-
-	static CButtonContainer s_AddActionButton, s_RemoveActionButton;
-	if(DoButton_Menu(&s_AddActionButton, "Add Action", 0, &AddActionRect))
-		GameClient()->m_FexQuickActions.AddActionToPage(s_SelectedPageIndex, s_aActionName, s_aActionCommand);
-	if(DoButton_Menu(&s_RemoveActionButton, "Remove Action", 0, &RemoveActionRect))
-		GameClient()->m_FexQuickActions.RemoveActionFromPage(s_SelectedPageIndex, 0);
+	LeftView.HSplitTop(LabelHeight * 2.0f, &Row, &LeftView);
+	Ui()->DoLabel(&Row, "In game: W opens, S switches page, F/D/A run the actions.", 10.0f, TEXTALIGN_ML);
 }
