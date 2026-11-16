@@ -244,8 +244,8 @@ void CWarList::AddWarEntryInGame(int WarType, const char *pName, const char *pRe
         str_copy(Entry.m_aName, pName);
         str_format(aBuf, sizeof(aBuf), "added \"%s\" to '%s' list", pName, pWarType->m_aWarName);
 
-        GameClient()->m_Fex.UnTempWar(pName, true);
-        GameClient()->m_Fex.UnTempHelper(pName, true);
+        GameClient()->m_Relations.UnTempWar(pName, true);
+        GameClient()->m_Relations.UnTempHelper(pName, true);
     }
     if(!g_Config.m_ClWarListAllowDuplicates)
         RemoveWarEntryDuplicates(Entry.m_aName, Entry.m_aClan);
@@ -301,8 +301,8 @@ void CWarList::RemoveWarEntryInGame(int WarType, const char *pName, bool IsClan)
     {
         str_copy(Entry.m_aName, pName);
         str_format(aBuf, sizeof(aBuf), "removed \"%s\" from the %s list", pName, pWarType->m_aWarName);
-        GameClient()->m_Fex.UnTempWar(pName, true);
-        GameClient()->m_Fex.UnTempHelper(pName, true);
+        GameClient()->m_Relations.UnTempWar(pName, true);
+        GameClient()->m_Relations.UnTempHelper(pName, true);
     }
     GameClient()->aMessage(aBuf);
     RemoveWarEntry(Entry.m_aName, Entry.m_aClan, Entry.m_pWarType->m_aWarName);
@@ -343,7 +343,7 @@ void CWarList::AddMute(const char *pName)
 
 	m_MuteEntries.push_back(Entry);
 
-	GameClient()->m_Fex.UnTempMute(pName, true);
+	GameClient()->m_Relations.UnTempMute(pName, true);
 }
 
 void CWarList::DelMute(const char *pName, bool Silent)
@@ -374,7 +374,7 @@ void CWarList::DelMute(const char *pName, bool Silent)
 			}
 		}
 	}
-	if(GameClient()->m_Fex.UnTempMute(pName, true))
+	if(GameClient()->m_Relations.UnTempMute(pName, true))
 		str_format(aBuf, sizeof(aBuf), "Removed \"%s\" from the Mute List", pName);
 
 	if(!Silent)

@@ -209,7 +209,13 @@ public:
 	// TODO: create an unordered map for war clans and war names, to speed up updating the WarPlayers cache
 	// It should be updated when m_WarList changes
 
+private:
+	// Relations are resolved by CPlayerRelations, which merges this cache with
+	// the session-only temporary list. Read it through that module.
+	friend class CPlayerRelations;
 	CWarDataCache m_WarPlayers[MAX_CLIENTS];
+
+public:
 	
 	bool IsInList(const char *pName, const char *pClan, const char *pType);
 

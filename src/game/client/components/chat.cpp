@@ -2306,13 +2306,12 @@ void CChat::ChatDetection(int ClientId, int Team, const char *pLine)
 
 					if(PlayerCid >= 0)
 					{
-						CWarDataCache *pWarData = &GameClient()->m_WarList.m_WarPlayers[PlayerCid];
-						CTempData *pTempData = &GameClient()->m_Fex.m_TempPlayers[PlayerCid];
+						const SPlayerRelation Relation = GameClient()->m_Relations.Get(PlayerCid);
 
 						char Reason[128];
 						str_copy(Reason, CharOname);
-						if(str_comp(pTempData->m_aReason, "") != 0)
-							str_copy(Reason, pTempData->m_aReason);
+						if(str_comp(Relation.m_pTempReason, "") != 0)
+							str_copy(Reason, Relation.m_pTempReason);
 
 						if(GameClient()->m_WarList.FindWarTypeWithName(name) == 2)
 						{
@@ -2322,44 +2321,44 @@ void CChat::ChatDetection(int ClientId, int Team, const char *pLine)
 						}
 						else
 						{
-							if(pWarData->m_WarGroupMatches[1])
+							if(Relation.m_PersistentWar)
 							{
-								GameClient()->m_Fex.TempWar(name, Reason, true);
+								GameClient()->m_Relations.TempWar(name, Reason, true);
 								str_format(aBuf, sizeof(aBuf), "Auto Added \"%s\" to Temp War list", name);
 								if(g_Config.m_ClAutoAddOnNameChange == 2)
 									GameClient()->aMessage(aBuf);
 							}
-							else if(pWarData->m_WarGroupMatches[3])
+							else if(Relation.m_PersistentHelper)
 							{
-								GameClient()->m_Fex.TempHelper(name, Reason, true);
+								GameClient()->m_Relations.TempHelper(name, Reason, true);
 								str_format(aBuf, sizeof(aBuf), "Auto Added \"%s\" to Temp Helper list", name);
 								if(g_Config.m_ClAutoAddOnNameChange == 2)
 									GameClient()->aMessage(aBuf);
 							}
-							else if(pTempData->IsTempWar)
+							else if(Relation.m_TempWar)
 							{
-								if(str_comp(pTempData->m_aReason, "") != 0)
-									str_copy(Reason, pTempData->m_aReason);
+								if(str_comp(Relation.m_pTempReason, "") != 0)
+									str_copy(Reason, Relation.m_pTempReason);
 
-								GameClient()->m_Fex.TempWar(name, Reason, true);
+								GameClient()->m_Relations.TempWar(name, Reason, true);
 								str_format(aBuf, sizeof(aBuf), "Auto Added \"%s\" to Temp War list", name);
 								if(g_Config.m_ClAutoAddOnNameChange == 2)
 									GameClient()->aMessage(aBuf);
 							}
-							else if(pTempData->IsTempHelper)
+							else if(Relation.m_TempHelper)
 							{
-								if(str_comp(pTempData->m_aReason, "") != 0)
-									str_copy(Reason, pTempData->m_aReason);
+								if(str_comp(Relation.m_pTempReason, "") != 0)
+									str_copy(Reason, Relation.m_pTempReason);
 
-								GameClient()->m_Fex.TempHelper(name, Reason, true);
+								GameClient()->m_Relations.TempHelper(name, Reason, true);
 								str_format(aBuf, sizeof(aBuf), "Auto Added \"%s\" to Temp Helper list", name);
 								if(g_Config.m_ClAutoAddOnNameChange == 2)
 									GameClient()->aMessage(aBuf);
 							}
 						}
-						if(pWarData->IsMuted || pTempData->IsTempMute)
+						if(Relation.IsMuted())
 						{
-							GameClient()->m_Fex.TempMute(name);
+							GameClient()->m_Relations.TempMute(name);
 							str_format(aBuf, sizeof(aBuf), "Auto Added \"%s\" to Temp Mute list", name);
 							if(g_Config.m_ClAutoAddOnNameChange == 2)
 								GameClient()->aMessage(aBuf);

@@ -14,11 +14,6 @@
 #include <engine/serverbrowser.h>
 
 
-void CFex::OnNewSnapshot()
-{
-	UpdateTempPlayers();
-}
-
 int CFex::IdWithName(const char *pName)
 {
 	int ClientId;
@@ -31,223 +26,6 @@ int CFex::IdWithName(const char *pName)
 		}
 	}
 	return -1;
-}
-
-void CFex::TempWar(const char *pName, const char *pReason, bool Silent)
-{
-	UnTempWar(pName, true); // Remove previous Reason
-
-	CTempEntry Entry(0, pName, pReason);
-	str_copy(Entry.m_aTempWar, pName);
-	str_copy(Entry.m_aReason, pReason);
-
-	m_TempEntries.push_back(Entry);
-	UnTempHelper(pName, true);
-
-	char aBuf[128];
-	str_format(aBuf, sizeof(aBuf), "Added \"%s\" to the Temp War List", pName, pReason);
-	if(!Silent)
-		GameClient()->aMessage(aBuf);
-
-	UpdateTempPlayers();
-}
-
-bool CFex::UnTempWar(const char *pName, bool Silent)
-{
-	bool Removed = false;
-
-	if(!str_comp(pName, ""))
-		return Removed;
-
-	char aBuf[128];
-	str_format(aBuf, sizeof(aBuf), "couldn't find \"%s\" on the Temp War List", pName);
-	CTempEntry Entry(0, pName, "");
-
-	auto it = std::find(m_TempEntries.begin(), m_TempEntries.end(), Entry);
-	if(it != m_TempEntries.end())
-	{
-		for(auto it2 = m_TempEntries.begin(); it2 != m_TempEntries.end();)
-		{
-			bool IsDuplicate = !str_comp(it2->m_aTempWar, pName);
-
-			if(IsDuplicate)
-				it2 = m_TempEntries.erase(it2);
-			else
-				++it2;
-
-			if(!str_comp(it2->m_aTempWar, pName))
-			{
-				str_format(aBuf, sizeof(aBuf), "Removed \"%s\" from the Temp War List", pName);
-				Removed = true;
-			}
-		}
-	}
-	if(!Silent)
-		GameClient()->aMessage(aBuf);
-	return Removed;
-}
-
-void CFex::TempHelper(const char *pName, const char *pReason, bool Silent)
-{
-	UnTempHelper(pName, true); // Remove previous Reason
-
-	CTempEntry Entry(1, pName, pReason);
-	str_copy(Entry.m_aTempHelper, pName);
-	str_copy(Entry.m_aReason, pReason);
-
-	m_TempEntries.push_back(Entry);
-	UnTempWar(pName, true);
-
-	char aBuf[128];
-	str_format(aBuf, sizeof(aBuf), "Added \"%s\" to the Temp Helper List", pName);
-	if(!Silent)
-		GameClient()->aMessage(aBuf);
-
-	UpdateTempPlayers();
-}
-bool CFex::UnTempHelper(const char *pName, bool Silent)
-{
-	bool Removed = false;
-	if(!str_comp(pName, ""))
-		return Removed;
-
-	char aBuf[128];
-	str_format(aBuf, sizeof(aBuf), "couldn't find \"%s\" on the Temp Helper List", pName);
-	CTempEntry Entry(1, pName, "");
-
-	auto it = std::find(m_TempEntries.begin(), m_TempEntries.end(), Entry);
-	if(it != m_TempEntries.end())
-	{
-		for(auto it2 = m_TempEntries.begin(); it2 != m_TempEntries.end();)
-		{
-			bool IsDuplicate = !str_comp(it2->m_aTempHelper, pName);
-
-			if(IsDuplicate)
-				it2 = m_TempEntries.erase(it2);
-			else
-				++it2;
-
-			if(!str_comp(it2->m_aTempHelper, pName))
-			{
-				str_format(aBuf, sizeof(aBuf), "Removed \"%s\" from the Temp Helper List", pName);
-				Removed = true;
-			}
-		}
-	}
-	if(!Silent)
-		GameClient()->aMessage(aBuf);
-	return Removed;
-}
-
-void CFex::TempMute(const char *pName, bool Silent)
-{
-	CTempEntry Entry(2, pName, "");
-	str_copy(Entry.m_aTempMute, pName);
-
-	m_TempEntries.push_back(Entry);
-
-	char aBuf[128];
-	str_format(aBuf, sizeof(aBuf), "Added \"%s\" to the Temp Mute List", pName);
-	if(!Silent)
-		GameClient()->aMessage(aBuf);
-
-	UpdateTempPlayers();
-}
-bool CFex::UnTempMute(const char *pName, bool Silent)
-{
-	bool Removed = false;
-
-	if(!str_comp(pName, ""))
-		return Removed;
-
-	char aBuf[128];
-	str_format(aBuf, sizeof(aBuf), "couldn't find \"%s\" on the Temp Mute List", pName);
-	CTempEntry Entry(2, pName, "");
-
-	auto it = std::find(m_TempEntries.begin(), m_TempEntries.end(), Entry);
-	if(it != m_TempEntries.end())
-	{
-		for(auto it2 = m_TempEntries.begin(); it2 != m_TempEntries.end();)
-		{
-			bool IsDuplicate = !str_comp(it2->m_aTempMute, pName);
-
-			if(IsDuplicate)
-				it2 = m_TempEntries.erase(it2);
-			else
-				++it2;
-
-			if(!str_comp(it2->m_aTempMute, pName))
-			{
-				str_format(aBuf, sizeof(aBuf), "Removed \"%s\" from the Temp Mute List", pName);
-				Removed = true;
-			}
-		}
-	}
-	if(!Silent)
-		GameClient()->aMessage(aBuf);
-	return Removed;
-}
-
-void CFex::RemoveWarEntryDuplicates(const char *pName)
-{
-	if(!str_comp(pName, ""))
-		return;
-
-	for(auto it = m_TempEntries.begin(); it != m_TempEntries.end();)
-	{
-		bool IsDuplicate = !str_comp(it->m_aTempWar, pName) || !str_comp(it->m_aTempHelper, pName) || !str_comp(it->m_aTempMute, pName);
-
-		if(IsDuplicate)
-		{
-			it = m_TempEntries.erase(it);
-		}
-		else
-			++it;
-	}
-	UpdateTempPlayers();
-}
-
-void CFex::RemoveWarEntry(int Type, const char *pName)
-{
-	CTempEntry Entry(Type, pName, "");
-	auto it = std::find(m_TempEntries.begin(), m_TempEntries.end(), Entry);
-	if(it != m_TempEntries.end())
-		m_TempEntries.erase(it);
-
-	UpdateTempPlayers();
-}
-
-void CFex::UpdateTempPlayers()
-{
-	for(int i = 0; i < MAX_CLIENTS; ++i)
-	{
-		if(!GameClient()->m_aClients[i].m_Active)
-			continue;
-
-		m_TempPlayers[i].IsTempWar = false;
-		m_TempPlayers[i].IsTempHelper = false;
-		m_TempPlayers[i].IsTempMute = false;
-		memset(m_TempPlayers[i].m_aReason, 0, sizeof(m_TempPlayers[i].m_aReason));
-
-		for(CTempEntry &Entry : m_TempEntries)
-		{
-			if(!str_comp(GameClient()->m_aClients[i].m_aName, Entry.m_aTempWar) && str_comp(Entry.m_aTempWar, "") != 0)
-			{
-				str_copy(m_TempPlayers[i].m_aReason, Entry.m_aReason);
-				m_TempPlayers[i].IsTempWar = true;
-			}
-			if(!str_comp(GameClient()->m_aClients[i].m_aName, Entry.m_aTempHelper) && str_comp(Entry.m_aTempHelper, "") != 0)
-			{
-				str_copy(m_TempPlayers[i].m_aReason, Entry.m_aReason);
-				m_TempPlayers[i].IsTempHelper = true;
-			}
-			if(!str_comp(GameClient()->m_aClients[i].m_aName, Entry.m_aTempMute) && str_comp(Entry.m_aTempMute, "") != 0)
-			{
-				str_copy(m_TempPlayers[i].m_aReason, Entry.m_aReason);
-				m_TempPlayers[i].IsTempMute = true;
-			}
-		}
-	}
 }
 
 void CFex::ConOnlineInfo(IConsole::IResult *pResult, void *pUserData)
@@ -271,8 +49,9 @@ void CFex::OnlineInfo(bool Integrate)
 	int NumberWarsAfk = 0;
 	for(auto &Client : GameClient()->m_aClients)
 	{
-		bool War = GameClient()->m_WarList.GetWarData(IdWithName(Client.m_aName)).m_WarGroupMatches[1];
-		bool TempWar = m_TempPlayers[IdWithName(Client.m_aName)].IsTempWar;
+		const SPlayerRelation Relation = GameClient()->m_Relations.Get(Client.m_Id);
+		bool War = Relation.m_PersistentWar;
+		bool TempWar = Relation.m_TempWar;
 
 		if(!Client.m_Active && GameClient()->m_Teams.Team(Client.m_Id) == 0)
 			continue;
@@ -292,7 +71,8 @@ void CFex::OnlineInfo(bool Integrate)
 	int NumberTeamsAfk = 0;
 	for(auto &Client : GameClient()->m_aClients)
 	{
-		bool Team = GameClient()->m_WarList.GetWarData(IdWithName(Client.m_aName)).m_WarGroupMatches[2];
+		const SPlayerRelation Relation = GameClient()->m_Relations.Get(Client.m_Id);
+		bool Team = Relation.m_PersistentTeam;
 
 		if(!Client.m_Active && GameClient()->m_Teams.Team(Client.m_Id) == 0)
 			continue;
@@ -312,8 +92,9 @@ void CFex::OnlineInfo(bool Integrate)
 	int NumberHelpersAfk = 0;
 	for(auto &Client : GameClient()->m_aClients)
 	{
-		bool Helper = GameClient()->m_WarList.GetWarData(IdWithName(Client.m_aName)).m_WarGroupMatches[3];
-		bool TempHelper = m_TempPlayers[IdWithName(Client.m_aName)].IsTempHelper;
+		const SPlayerRelation Relation = GameClient()->m_Relations.Get(Client.m_Id);
+		bool Helper = Relation.m_PersistentHelper;
+		bool TempHelper = Relation.m_TempHelper;
 
 		if(!Client.m_Active && GameClient()->m_Teams.Team(Client.m_Id) == 0)
 			continue;
@@ -333,8 +114,9 @@ void CFex::OnlineInfo(bool Integrate)
 	int NumberMutesAfk = 0;
 	for(auto &Client : GameClient()->m_aClients)
 	{
-		bool Mute = GameClient()->m_WarList.m_WarPlayers[Client.m_Id].IsMuted;
-		bool TempMute = m_TempPlayers[IdWithName(Client.m_aName)].IsTempMute;
+		const SPlayerRelation Relation = GameClient()->m_Relations.Get(Client.m_Id);
+		bool Mute = Relation.m_PersistentMute;
+		bool TempMute = Relation.m_TempMute;
 
 		if(!Client.m_Active)
 			continue;
@@ -419,44 +201,6 @@ const char* CFex::NameFromId(int ID)
 {
     return m_pClient->m_aClients[ID].m_aName;
 }
-
-// Temp War Commands
-void CFex::ConTempWar(IConsole::IResult *pResult, void *pUserData)
-{
-	CFex *pSelf = (CFex *)pUserData;
-	pSelf->TempWar(pResult->GetString(0), pResult->GetString(1));
-}
-void CFex::ConUnTempWar(IConsole::IResult *pResult, void *pUserData)
-{
-	CFex *pSelf = (CFex *)pUserData;
-	pSelf->UnTempWar(pResult->GetString(0));
-}
-
-// Temp Helper Commands
-void CFex::ConTempHelper(IConsole::IResult *pResult, void *pUserData)
-{
-	CFex *pSelf = (CFex *)pUserData;
-	pSelf->TempHelper(pResult->GetString(0), pResult->GetString(1));
-}
-void CFex::ConUnTempHelper(IConsole::IResult *pResult, void *pUserData)
-{
-	CFex *pSelf = (CFex *)pUserData;
-	pSelf->UnTempHelper(pResult->GetString(0));
-}
-
-// Mute Commands
-void CFex::ConTempMute(IConsole::IResult *pResult, void *pUserData)
-{
-	CFex *pSelf = (CFex *)pUserData;
-	pSelf->TempMute(pResult->GetString(0));
-}
-void CFex::ConUnTempMute(IConsole::IResult *pResult, void *pUserData)
-{
-	CFex *pSelf = (CFex *)pUserData;
-	pSelf->UnTempMute(pResult->GetString(0));
-}
-
-
 
 void CFex::OnRender()
 {
@@ -610,15 +354,6 @@ void CFex::OnConsoleInit()
 	Console()->Register("onlineinfo", "", CFGFLAG_CLIENT, ConOnlineInfo, this, "Shows you how many people of default lists are on the current server");
 	Console()->Register("playerinfo", "s[name]", CFGFLAG_CLIENT, ConPlayerInfo, this, "Get Info of a Player");
 
-	// Temporary Lists
-	Console()->Register("addtempwar", "s[name] ?r[reason]", CFGFLAG_CLIENT, ConTempWar, this, "temporary War");
-	Console()->Register("deltempwar", "s[name]", CFGFLAG_CLIENT, ConUnTempWar, this, "remove temporary War");
-
-	Console()->Register("addtemphelper", "s[name] ?r[reason]", CFGFLAG_CLIENT, ConTempHelper, this, "temporary Helper");
-	Console()->Register("deltemphelper", "s[name]", CFGFLAG_CLIENT, ConUnTempHelper, this, "remove temporary Helper");
-
-	Console()->Register("addtempmute", "s[name] ?r[reason]", CFGFLAG_CLIENT, ConTempMute, this, "temporary Mute");
-	Console()->Register("deltempmute", "s[name]", CFGFLAG_CLIENT, ConUnTempMute, this, "remove temporary Mute");
 
 }
 void CFex::OnInit()

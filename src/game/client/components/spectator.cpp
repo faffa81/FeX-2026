@@ -518,12 +518,11 @@ void CSpectator::OnRender()
 		else
 		{
 			ColorRGBA Color = ColorRGBA(1.0f, 1.0f, 1.0f, Alpha);
-			if(GameClient()->m_Fex.m_TempPlayers[ClientId].IsTempWar)
-				Color = GameClient()->m_WarList.m_WarTypes[1]->m_Color;
-			else if(GameClient()->m_Fex.m_TempPlayers[ClientId].IsTempHelper)
-				Color = GameClient()->m_WarList.m_WarTypes[3]->m_Color;
-			else if(GameClient()->m_WarList.GetAnyWar(ClientId))
-				Color = GameClient()->m_WarList.GetPriorityColor(ClientId);
+			ColorRGBA TempColor;
+			if(GameClient()->m_Relations.TempColor(ClientId, &TempColor))
+				Color = TempColor;
+			else if(GameClient()->m_Relations.HasWarEntry(ClientId))
+				Color = GameClient()->m_Relations.PriorityColor(ClientId);
 			else if(m_pClient->m_aClients[ClientId].m_Friend)
 				Color =  color_cast<ColorRGBA>(ColorHSLA(g_Config.m_ClFriendColor));
 			TextRender()->TextColor(Color.WithAlpha(Alpha));

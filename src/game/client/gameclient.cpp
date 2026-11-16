@@ -173,6 +173,7 @@ void CGameClient::OnConsoleInit()
 						  &m_Bindchat,
 					      &m_Bindwheel,
 					      &m_WarList,
+					      &m_Relations,
 					      &m_StatusBar,
 					      &m_InfoMessages,
 					      &m_Chat,
@@ -2181,15 +2182,16 @@ void CGameClient::OnNewSnapshot()
 					m_Teams.SetSolo(Item.m_Id, pClient->m_Solo);
 
 					// Warlist
-					pClient->m_IsWar = m_WarList.GetWarData(Item.m_Id).m_WarGroupMatches[1] || m_Fex.m_TempPlayers[Item.m_Id].IsTempWar;
-					pClient->m_IsTeam = m_WarList.GetWarData(Item.m_Id).m_WarGroupMatches[2];
-					pClient->m_IsHelper = m_WarList.GetWarData(Item.m_Id).m_WarGroupMatches[3] || m_Fex.m_TempPlayers[Item.m_Id].IsTempHelper;
+					const SPlayerRelation Relation = m_Relations.Get(Item.m_Id);
+					pClient->m_IsWar = Relation.AtWar();
+					pClient->m_IsTeam = Relation.IsTeam();
+					pClient->m_IsHelper = Relation.IsHelper();
 
 					pClient->m_Id = Item.m_Id;
 
-					pClient->m_IsMute = m_Fex.m_TempPlayers[Item.m_Id].IsTempMute || m_WarList.m_WarPlayers[Item.m_Id].IsMuted;
+					pClient->m_IsMute = Relation.IsMuted();
 
-					pClient->m_IsAnyList = m_WarList.m_WarPlayers[Item.m_Id].IsWarName;
+					pClient->m_IsAnyList = Relation.m_IsWarName;
 				}
 			}
 			else if(Item.m_Type == NETOBJTYPE_SPECCHAR)

@@ -68,6 +68,7 @@
 #include "components/fex/fexfreezekill.h"
 #include "components/fex/fexskinprofiles.h"
 #include "components/fex/fexwarlist.h"
+#include "components/fex/playerrelations.h"
 #include "components/fex/fexbindchat.h"
 #include "components/fex/fexvisual.h"
 
@@ -177,6 +178,7 @@ public:
 	CBindchat m_Bindchat;
 	CSkinProfiles m_SkinProfiles;
 	CWarList m_WarList;
+	CPlayerRelations m_Relations;
 	CFreezeKill m_FreezeKill;
 	CTrails m_Trails;
 	CPlayerIndicator m_PlayerIndicator;
