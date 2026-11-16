@@ -20,19 +20,28 @@ git submodule update --init --recursive
 | iOS | not supported yet, see below | — |
 
 The binaries are written to the build directory (`FeX`, `FeX-Server`,
-`FeX-Server-Launcher`); on Windows with the Visual Studio generator they end up
-in `build/release`.
+`FeX-Server-Launcher`).
 
 ## Windows
 
 Requires Visual Studio 2022 or newer with the *Desktop development with C++*
-workload, CMake and Rust on `PATH`. The script uses the Visual Studio generator
-when MSVC is installed and falls back to Ninja/LLVM otherwise.
+workload, CMake, Ninja and Rust on `PATH`. The script imports the MSVC
+environment from `vcvars64.bat` and drives a **CMake + Ninja** build, which
+compiles noticeably faster than the Visual Studio generator and keeps the build
+directory independent of the IDE. Because Ninja is single-config, the build type
+is fixed at configure time through `CMAKE_BUILD_TYPE`.
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File scripts/build/windows.ps1
 # debug build in a separate directory:
 powershell -ExecutionPolicy Bypass -File scripts/build/windows.ps1 -Configuration Debug -BuildDir build-debug
+```
+
+Or by hand, from a *Developer PowerShell for VS* prompt:
+
+```powershell
+cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=RelWithDebInfo -DCLIENT=ON -DSERVER=OFF -DTOOLS=OFF -DDOWNLOAD_GTEST=OFF
+cmake --build build --parallel
 ```
 
 ## Linux
