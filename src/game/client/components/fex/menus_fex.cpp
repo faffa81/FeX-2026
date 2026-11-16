@@ -402,12 +402,33 @@ void CMenus::RenderFex(CUIRect MainView, int CurPage)
 					FastInputSettings.HSplitTop(HeaderHeight, &Label, &FastInputSettings);
 					Ui()->DoLabel(&Label, Localize("Input"), HeadlineFontSize, TEXTALIGN_ML);
 
-					DoButton_CheckBoxAutoVMarginAndSet(&g_Config.m_ClFastInput, Localize("Fast Inputs (-20ms visual delay)"), &g_Config.m_ClFastInput, &FastInputSettings, LineSize);
+{
+						static CUi::SDropDownState s_FastInputModeState;
+						static std::vector<const char *> s_vpFastInputModeNames;
+						if(s_vpFastInputModeNames.empty())
+						{
+							for(int i = 0; i < NUM_FASTINPUT_MODES; i++)
+								s_vpFastInputModeNames.push_back(FastInputModeName(i));
+						}
 
-					if(g_Config.m_ClFastInput)
-					DoButton_CheckBoxAutoVMarginAndSet(&g_Config.m_ClFastInputOthers, Localize("Extra tick other tees (increases other tees latency, \nmakes dragging slightly easier when using fast input)"), &g_Config.m_ClFastInputOthers, &FastInputSettings, LineSize);
-					else
-					FastInputSettings.HSplitTop(LineSize, nullptr, &FastInputSettings);
+						FastInputSettings.HSplitTop(LineSize, &Button, &FastInputSettings);
+						s_FastInputModeState.m_SelectionPopupContext.m_pScrollRegion = &s_ScrollRegion;
+						g_Config.m_ClFastInput = Ui()->DoDropDown(&Button, g_Config.m_ClFastInput, s_vpFastInputModeNames.data(), s_vpFastInputModeNames.size(), s_FastInputModeState);
+
+						FastInputSettings.HSplitTop(LineSize, &Label, &FastInputSettings);
+						Ui()->DoLabel(&Label, FastInputModeDescription(g_Config.m_ClFastInput), 10.0f, TEXTALIGN_ML);
+
+						if(g_Config.m_ClFastInput != FASTINPUT_OFF)
+							DoButton_CheckBoxAutoVMarginAndSet(&g_Config.m_ClFastInputOthers, Localize("Extra tick other tees (increases other tees latency, \nmakes dragging slightly easier when using fast input)"), &g_Config.m_ClFastInputOthers, &FastInputSettings, LineSize);
+						else
+							FastInputSettings.HSplitTop(LineSize, nullptr, &FastInputSettings);
+
+						if(FastInputModeMask(g_Config.m_ClFastInput) & FASTINPUT_FIELD_AIM)
+						{
+							FastInputSettings.HSplitTop(LineSize, &Button, &FastInputSettings);
+							Ui()->DoScrollbarOption(&g_Config.m_ClFastInputAim, &g_Config.m_ClFastInputAim, &Button, Localize("Aim sensitivity"), 0, 45, &CUi::ms_LinearScrollbarScale, 0, " deg");
+						}
+					}
 					// A little extra spacing because these are multi line
 					FastInputSettings.HSplitTop(MarginSmall, nullptr, &FastInputSettings);
 

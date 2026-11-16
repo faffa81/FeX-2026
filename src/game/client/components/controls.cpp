@@ -2,6 +2,9 @@
 /* If you are missing that file, acquire a complete release at teeworlds.com.                */
 #include <base/math.h>
 
+#include <algorithm>
+#include <cmath>
+
 #include <engine/client.h>
 #include <engine/shared/config.h>
 
@@ -446,8 +449,98 @@ float CControls::GetMaxMouseDistance() const
 	return minimum((FollowFactor != 0 ? CameraMaxDistance / FollowFactor + DeadZone : MaxDistance), MaxDistance);
 }
 
+const char *FastInputModeName(int Mode)
+{
+	switch(Mode)
+	{
+	case FASTINPUT_OFF: return "Off";
+	case FASTINPUT_ALL: return "All inputs";
+	case FASTINPUT_MOVEMENT: return "Movement only";
+	case FASTINPUT_COMBAT: return "Combat only";
+	case FASTINPUT_MOVEMENT_HOOK: return "Movement + hook";
+	case FASTINPUT_HOOK: return "Hook only";
+	case FASTINPUT_FIRE: return "Fire only";
+	case FASTINPUT_WEAPONS: return "Weapon switch only";
+	case FASTINPUT_JUMP: return "Jump only";
+	case FASTINPUT_PRESSES: return "Presses only";
+	case FASTINPUT_AIM: return "Aim only";
+	case FASTINPUT_AIM_COMBAT: return "Aim + combat";
+	default: return "Unknown";
+	}
+}
+
+const char *FastInputModeDescription(int Mode)
+{
+	switch(Mode)
+	{
+	case FASTINPUT_OFF: return "Fast input disabled.";
+	case FASTINPUT_ALL: return "Repredict on any input change (original fast input).";
+	case FASTINPUT_MOVEMENT: return "Only direction and jump repredict; weapons and hook keep tick timing.";
+	case FASTINPUT_COMBAT: return "Only hook, fire and weapon switches repredict; movement keeps tick timing.";
+	case FASTINPUT_MOVEMENT_HOOK: return "Movement and hook repredict, fire and weapon switches do not.";
+	case FASTINPUT_HOOK: return "Only the hook repredicts.";
+	case FASTINPUT_FIRE: return "Only fire repredicts.";
+	case FASTINPUT_WEAPONS: return "Only weapon switches repredict.";
+	case FASTINPUT_JUMP: return "Only jump repredicts (bunnyhop timing).";
+	case FASTINPUT_PRESSES: return "All inputs, but only key presses trigger; releases wait for the tick.";
+	case FASTINPUT_AIM: return "Only crosshair movement above the sensitivity triggers.";
+	case FASTINPUT_AIM_COMBAT: return "Crosshair movement plus hook, fire and weapon switches.";
+	default: return "";
+	}
+}
+
+int FastInputModeMask(int Mode)
+{
+	switch(Mode)
+	{
+	case FASTINPUT_ALL:
+	case FASTINPUT_PRESSES:
+		return FASTINPUT_FIELD_DIRECTION | FASTINPUT_FIELD_JUMP | FASTINPUT_FIELD_HOOK |
+		       FASTINPUT_FIELD_FIRE | FASTINPUT_FIELD_WEAPON;
+	case FASTINPUT_MOVEMENT:
+		return FASTINPUT_FIELD_DIRECTION | FASTINPUT_FIELD_JUMP;
+	case FASTINPUT_COMBAT:
+		return FASTINPUT_FIELD_HOOK | FASTINPUT_FIELD_FIRE | FASTINPUT_FIELD_WEAPON;
+	case FASTINPUT_MOVEMENT_HOOK:
+		return FASTINPUT_FIELD_DIRECTION | FASTINPUT_FIELD_JUMP | FASTINPUT_FIELD_HOOK;
+	case FASTINPUT_HOOK:
+		return FASTINPUT_FIELD_HOOK;
+	case FASTINPUT_FIRE:
+		return FASTINPUT_FIELD_FIRE;
+	case FASTINPUT_WEAPONS:
+		return FASTINPUT_FIELD_WEAPON;
+	case FASTINPUT_JUMP:
+		return FASTINPUT_FIELD_JUMP;
+	case FASTINPUT_AIM:
+		return FASTINPUT_FIELD_AIM;
+	case FASTINPUT_AIM_COMBAT:
+		return FASTINPUT_FIELD_AIM | FASTINPUT_FIELD_HOOK | FASTINPUT_FIELD_FIRE | FASTINPUT_FIELD_WEAPON;
+	default:
+		return 0;
+	}
+}
+
+// True when the crosshair moved by at least ThresholdDeg between two inputs.
+static bool FastInputAimMoved(const CNetObj_PlayerInput &Old, const CNetObj_PlayerInput &Now, float ThresholdDeg)
+{
+	const vec2 OldAim(Old.m_TargetX, Old.m_TargetY);
+	const vec2 NewAim(Now.m_TargetX, Now.m_TargetY);
+	const float OldLen = length(OldAim);
+	const float NewLen = length(NewAim);
+	if(OldLen < 0.001f || NewLen < 0.001f)
+		return absolute(OldLen - NewLen) > 0.001f;
+
+	const vec2 OldDir = OldAim / OldLen;
+	const vec2 NewDir = NewAim / NewLen;
+	const float Dot = std::clamp(OldDir.x * NewDir.x + OldDir.y * NewDir.y, -1.0f, 1.0f);
+	const float Angle = acosf(Dot) * 180.0f / pi;
+	return Angle >= ThresholdDeg;
+}
+
 bool CControls::CheckNewInput()
 {
+	const int Mode = g_Config.m_ClFastInput;
+
 	CNetObj_PlayerInput TestInput = m_aInputData[g_Config.m_ClDummy];
 	TestInput.m_Direction = 0;
 	if(m_aInputDirectionLeft[g_Config.m_ClDummy] && !m_aInputDirectionRight[g_Config.m_ClDummy])
@@ -455,33 +548,65 @@ bool CControls::CheckNewInput()
 	if(!m_aInputDirectionLeft[g_Config.m_ClDummy] && m_aInputDirectionRight[g_Config.m_ClDummy])
 		TestInput.m_Direction = 1;
 
+	// The aim modes need the current crosshair even when sub-tick aiming is off.
+	TestInput.m_TargetX = (int)m_aMousePos[g_Config.m_ClDummy].x;
+	TestInput.m_TargetY = (int)m_aMousePos[g_Config.m_ClDummy].y;
+
+	if(Mode <= FASTINPUT_OFF || Mode >= NUM_FASTINPUT_MODES)
+	{
+		m_FastInput = TestInput;
+		return false;
+	}
+
+	const int Mask = FastInputModeMask(Mode);
+	const bool PressesOnly = Mode == FASTINPUT_PRESSES;
+
+	// In press mode a release waits for the next tick, so letting go of a key
+	// does not force another prediction.
+	auto Triggered = [PressesOnly](bool OldValue, bool NewValue) {
+		if(OldValue == NewValue)
+			return false;
+		return !PressesOnly || (!OldValue && NewValue);
+	};
+
 	bool NewInput = false;
-	if(m_FastInput.m_Direction != TestInput.m_Direction)
+
+	if(Mask & FASTINPUT_FIELD_DIRECTION)
+	{
+		if(PressesOnly)
+		{
+			if(m_FastInput.m_Direction == 0 && TestInput.m_Direction != 0)
+				NewInput = true;
+		}
+		else if(m_FastInput.m_Direction != TestInput.m_Direction)
+			NewInput = true;
+	}
+
+	if((Mask & FASTINPUT_FIELD_JUMP) && Triggered(m_FastInput.m_Jump != 0, TestInput.m_Jump != 0))
 		NewInput = true;
-	if(m_FastInput.m_Hook != TestInput.m_Hook)
+	if((Mask & FASTINPUT_FIELD_HOOK) && Triggered(m_FastInput.m_Hook != 0, TestInput.m_Hook != 0))
 		NewInput = true;
-	if(m_FastInput.m_Fire != TestInput.m_Fire)
-		NewInput = true;
-	if(m_FastInput.m_Jump != TestInput.m_Jump)
-		NewInput = true;
-	if(m_FastInput.m_NextWeapon != TestInput.m_NextWeapon)
-		NewInput = true;
-	if(m_FastInput.m_PrevWeapon != TestInput.m_PrevWeapon)
-		NewInput = true;
-	if(m_FastInput.m_WantedWeapon != TestInput.m_WantedWeapon)
+	if((Mask & FASTINPUT_FIELD_FIRE) && Triggered(m_FastInput.m_Fire != 0, TestInput.m_Fire != 0))
 		NewInput = true;
 
-	if(g_Config.m_ClSubTickAiming)
+	if(Mask & FASTINPUT_FIELD_WEAPON)
 	{
-		TestInput.m_TargetX = (int)m_aMousePos[g_Config.m_ClDummy].x;
-		TestInput.m_TargetY = (int)m_aMousePos[g_Config.m_ClDummy].y;
+		if(PressesOnly)
+		{
+			if((m_FastInput.m_NextWeapon == 0 && TestInput.m_NextWeapon != 0) ||
+				(m_FastInput.m_PrevWeapon == 0 && TestInput.m_PrevWeapon != 0) ||
+				(m_FastInput.m_WantedWeapon == 0 && TestInput.m_WantedWeapon != 0))
+				NewInput = true;
+		}
+		else if(m_FastInput.m_NextWeapon != TestInput.m_NextWeapon ||
+			m_FastInput.m_PrevWeapon != TestInput.m_PrevWeapon ||
+			m_FastInput.m_WantedWeapon != TestInput.m_WantedWeapon)
+			NewInput = true;
 	}
+
+	if((Mask & FASTINPUT_FIELD_AIM) && FastInputAimMoved(m_FastInput, TestInput, (float)g_Config.m_ClFastInputAim))
+		NewInput = true;
 
 	m_FastInput = TestInput;
-
-	if(NewInput)
-	{
-		return true;
-	}
-	return false;
+	return NewInput;
 }

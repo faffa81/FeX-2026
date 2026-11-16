@@ -95,7 +95,10 @@ MACRO_CONFIG_INT(ClPredGhostsAlpha, fx_pred_ghosts_alpha, 100, 0, 100, CFGFLAG_C
 MACRO_CONFIG_INT(ClUnpredGhostsAlpha, fx_unpred_ghosts_alpha, 50, 0, 100, CFGFLAG_CLIENT | CFGFLAG_SAVE, "Alpha of unpredicted ghosts (0-100)")
 MACRO_CONFIG_INT(ClRenderGhostAsCircle, fx_render_ghost_as_circle, 0, 0, 1, CFGFLAG_CLIENT | CFGFLAG_SAVE, "Render Ghosts as circles instead of tee")
 
-MACRO_CONFIG_INT(ClFastInput, fx_fast_input, 0, 0, 1, CFGFLAG_CLIENT | CFGFLAG_SAVE, "Toggles fast input settings for up to (20ms) better input")
+// Modes: 0=off, 1=all, 2=movement, 3=combat, 4=movement+hook, 5=hook, 6=fire,
+// 7=weapon switch, 8=jump, 9=presses only, 10=aim only, 11=aim+combat
+MACRO_CONFIG_INT(ClFastInput, fx_fast_input, 0, 0, 11, CFGFLAG_CLIENT | CFGFLAG_SAVE, "Fast input mode: repredict immediately for the inputs this mode watches (0=off, 1=all, 2=movement, 3=combat, 4=movement+hook, 5=hook, 6=fire, 7=weapon switch, 8=jump, 9=presses only, 10=aim only, 11=aim+combat)")
+MACRO_CONFIG_INT(ClFastInputAim, fx_fast_input_aim, 3, 0, 45, CFGFLAG_CLIENT | CFGFLAG_SAVE, "Degrees the crosshair must move to trigger the aim fast input modes")
 MACRO_CONFIG_INT(ClFastInputOthers, fx_fast_input_others, 0, 0, 1, CFGFLAG_CLIENT | CFGFLAG_SAVE, "Do an extra 1 tick (20ms) for other tees with your fast inputs. (increases visual latency, makes dragging easier)")
 
 MACRO_CONFIG_INT(ClAntiPingImproved, fx_antiping_improved, 0, 0, 1, CFGFLAG_CLIENT | CFGFLAG_SAVE, "Different antiping smoothing algorithm, not compatible with cl_antiping_smooth")
