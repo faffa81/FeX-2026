@@ -2703,6 +2703,21 @@ void CGameClient::UpdateEditorIngameMoved()
 	}
 }
 
+int CGameClient::FastInputTicks() const
+{
+	if(g_Config.m_ClFastInput < FASTINPUT_TCLIENT)
+		return 0; // legacy repredicts instead of leading
+
+	const int Amount = std::clamp(g_Config.m_ClFastInputAmount, 0, 40);
+	if(Amount <= 0)
+		return 0;
+
+	// Round to whole server ticks instead of assuming 50 ticks per second.
+	const int TickSpeed = maximum(1, Client()->GameTickSpeed());
+	const int Ticks = (Amount * TickSpeed + 500) / 1000;
+	return std::clamp(Ticks, 0, 4);
+}
+
 void CGameClient::OnPredict()
 {
 	// store the previous values so we can detect prediction errors
@@ -2765,10 +2780,11 @@ void CGameClient::OnPredict()
 	// prediction actually happens here
 
 	int FinalTickRegular = Client()->PredGameTick(g_Config.m_ClDummy); // The vanilla final tick disregarding fast input
-	int FinalTickSelf = FinalTickRegular + g_Config.m_ClFastInput; // the final tick for just our local tee
+	const int FastInputLead = FastInputTicks();
+	int FinalTickSelf = FinalTickRegular + FastInputLead; // the final tick for just our local tee
 	int FinalTickOthers = FinalTickSelf; // the final tick for all other tees
-	if(g_Config.m_ClFastInput && !g_Config.m_ClFastInputOthers)
-		FinalTickOthers = FinalTickSelf - g_Config.m_ClFastInput;
+	if(FastInputLead > 0 && !g_Config.m_ClFastInputOthers)
+		FinalTickOthers = FinalTickSelf - FastInputLead;
 
 	for(int Tick = Client()->GameTick(g_Config.m_ClDummy) + 1; Tick <= FinalTickSelf; Tick++)
 	{
@@ -2804,7 +2820,7 @@ void CGameClient::OnPredict()
 		CNetObj_PlayerInput *pDummyInputData = !pDummyChar ? nullptr : (CNetObj_PlayerInput *)Client()->GetInput(Tick, m_IsDummySwapping ^ 1);
 		bool DummyFirst = pInputData && pDummyInputData && pDummyChar->GetCid() < pLocalChar->GetCid();
 
-		if(g_Config.m_ClFastInput && Tick == FinalTickSelf)
+		if(g_Config.m_ClFastInput && Tick > FinalTickRegular)
 			pInputData = &m_Controls.m_FastInput;
 
 		if(DummyFirst)
@@ -4262,12 +4278,13 @@ vec2 CGameClient::GetSmoothPos(int ClientId)
 			float SmoothIntra;
 			Client()->GetSmoothTick(&SmoothTick, &SmoothIntra, MixAmount);
 
-			if(ClientId != m_Snap.m_LocalClientId && g_Config.m_ClFastInputOthers && g_Config.m_ClFastInput)
-				SmoothTick += g_Config.m_ClFastInput;
+			const int FastInputLeadTicks = FastInputTicks();
+			if(ClientId != m_Snap.m_LocalClientId && g_Config.m_ClFastInputOthers && FastInputLeadTicks > 0)
+				SmoothTick += FastInputLeadTicks;
 
 			if(SmoothTick > 0 &&
 				m_aClients[ClientId].m_aPredTick[(SmoothTick - 1) % 200] >= Client()->PrevGameTick(g_Config.m_ClDummy) &&
-				m_aClients[ClientId].m_aPredTick[SmoothTick % 200] <= Client()->PredGameTick(g_Config.m_ClDummy) + g_Config.m_ClFastInput)
+				m_aClients[ClientId].m_aPredTick[SmoothTick % 200] <= Client()->PredGameTick(g_Config.m_ClDummy) + FastInputLeadTicks)
 				Pos[i] = mix(m_aClients[ClientId].m_aPredPos[(SmoothTick - 1) % 200][i], m_aClients[ClientId].m_aPredPos[SmoothTick % 200][i], SmoothIntra);
 		}
 	}
@@ -4315,14 +4332,15 @@ vec2 CGameClient::GetFreezePos(int ClientId)
 		m_SmoothTick[i] = SmoothTick;
 		m_SmoothIntraTick[i] = SmoothIntra;
 
-		if(ClientId != m_Snap.m_LocalClientId && g_Config.m_ClFastInputOthers && g_Config.m_ClFastInput)
-			SmoothTick += g_Config.m_ClFastInput;
-		else if(ClientId == m_Snap.m_LocalClientId && g_Config.m_ClFastInput)
-			SmoothTick += g_Config.m_ClFastInput;
+		const int FastInputLeadTicks = FastInputTicks();
+		if(ClientId != m_Snap.m_LocalClientId && g_Config.m_ClFastInputOthers && FastInputLeadTicks > 0)
+			SmoothTick += FastInputLeadTicks;
+		else if(ClientId == m_Snap.m_LocalClientId && FastInputLeadTicks > 0)
+			SmoothTick += FastInputLeadTicks;
 
 		if(SmoothTick > 0 &&
 			m_aClients[ClientId].m_aPredTick[(SmoothTick - 1) % 200] >= Client()->PrevGameTick(g_Config.m_ClDummy) &&
-			m_aClients[ClientId].m_aPredTick[SmoothTick % 200] <= Client()->PredGameTick(g_Config.m_ClDummy) + g_Config.m_ClFastInput)
+			m_aClients[ClientId].m_aPredTick[SmoothTick % 200] <= Client()->PredGameTick(g_Config.m_ClDummy) + FastInputLeadTicks)
 		{
 			Pos[i] = mix(m_aClients[ClientId].m_aPredPos[(SmoothTick - 1) % 200][i], m_aClients[ClientId].m_aPredPos[SmoothTick % 200][i], SmoothIntra);
 		}

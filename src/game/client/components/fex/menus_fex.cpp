@@ -391,10 +391,13 @@ void CMenus::RenderFex(CUIRect MainView, int CurPage)
 
 			// ************** Fast Input Settings ************** //
 			{
+				// Rows are added by the scheme, so the box has to grow with them.
+				static float FastInputOffset = 0.0f;
 				FastInputSettings.HSplitTop(10.0f, nullptr, &FastInputSettings);
-				FastInputSettings.HSplitTop(385.0f, &FastInputSettings, &FrozenTeeHudSettings);
+				FastInputSettings.HSplitTop(385.0f + FastInputOffset, &FastInputSettings, &FrozenTeeHudSettings);
 				if(s_ScrollRegion.AddRect(FastInputSettings))
 				{
+					FastInputOffset = 0.0f;
 					FastInputSettings.Draw(ColorRGBA(1,1,1,0.25f), IGraphics::CORNER_ALL, 5.0f);
 					FastInputSettings.Margin(Margin, &FastInputSettings);
 
@@ -402,33 +405,42 @@ void CMenus::RenderFex(CUIRect MainView, int CurPage)
 					FastInputSettings.HSplitTop(HeaderHeight, &Label, &FastInputSettings);
 					Ui()->DoLabel(&Label, Localize("Input"), HeadlineFontSize, TEXTALIGN_ML);
 
-{
-						static CUi::SDropDownState s_FastInputModeState;
-						static std::vector<const char *> s_vpFastInputModeNames;
-						if(s_vpFastInputModeNames.empty())
-						{
-							for(int i = 0; i < NUM_FASTINPUT_MODES; i++)
-								s_vpFastInputModeNames.push_back(FastInputModeName(i));
-						}
+					static CUi::SDropDownState s_FastInputSchemeState;
+					static std::vector<const char *> s_vpFastInputSchemeNames;
+					if(s_vpFastInputSchemeNames.empty())
+					{
+						for(int i = 0; i < NUM_FASTINPUT_SCHEMES; i++)
+							s_vpFastInputSchemeNames.push_back(FastInputSchemeName(i));
+					}
 
+					FastInputSettings.HSplitTop(LineSize, &Button, &FastInputSettings);
+					s_FastInputSchemeState.m_SelectionPopupContext.m_pScrollRegion = &s_ScrollRegion;
+					g_Config.m_ClFastInput = Ui()->DoDropDown(&Button, g_Config.m_ClFastInput, s_vpFastInputSchemeNames.data(), s_vpFastInputSchemeNames.size(), s_FastInputSchemeState);
+
+					FastInputOffset += LineSize;
+					FastInputSettings.HSplitTop(LineSize, &Label, &FastInputSettings);
+					Ui()->DoLabel(&Label, FastInputSchemeDescription(g_Config.m_ClFastInput), 10.0f, TEXTALIGN_ML);
+
+					if(g_Config.m_ClFastInput != FASTINPUT_OFF)
+					{
+						FastInputOffset += LineSize;
 						FastInputSettings.HSplitTop(LineSize, &Button, &FastInputSettings);
-						s_FastInputModeState.m_SelectionPopupContext.m_pScrollRegion = &s_ScrollRegion;
-						g_Config.m_ClFastInput = Ui()->DoDropDown(&Button, g_Config.m_ClFastInput, s_vpFastInputModeNames.data(), s_vpFastInputModeNames.size(), s_FastInputModeState);
+						DoSliderWithScaledValue(&g_Config.m_ClFastInputAmount, &g_Config.m_ClFastInputAmount, &Button, Localize("Lead"), 0, 40, 1, &CUi::ms_LinearScrollbarScale, CUi::SCROLLBAR_OPTION_NOCLAMPVALUE, "ms");
 
-						FastInputSettings.HSplitTop(LineSize, &Label, &FastInputSettings);
-						Ui()->DoLabel(&Label, FastInputModeDescription(g_Config.m_ClFastInput), 10.0f, TEXTALIGN_ML);
+						FastInputOffset += LineSize;
+						DoButton_CheckBoxAutoVMarginAndSet(&g_Config.m_ClFastInputOthers, Localize("Fast input others"), &g_Config.m_ClFastInputOthers, &FastInputSettings, LineSize);
 
-						if(g_Config.m_ClFastInput != FASTINPUT_OFF)
-							DoButton_CheckBoxAutoVMarginAndSet(&g_Config.m_ClFastInputOthers, Localize("Extra tick other tees (increases other tees latency, \nmakes dragging slightly easier when using fast input)"), &g_Config.m_ClFastInputOthers, &FastInputSettings, LineSize);
-						else
-							FastInputSettings.HSplitTop(LineSize, nullptr, &FastInputSettings);
+						FastInputOffset += LineSize;
+						DoButton_CheckBoxAutoVMarginAndSet(&g_Config.m_ClFastInputHook, Localize("Hook aim refresh"), &g_Config.m_ClFastInputHook, &FastInputSettings, LineSize);
 
-						if(FastInputModeMask(g_Config.m_ClFastInput) & FASTINPUT_FIELD_AIM)
+						if(g_Config.m_ClFastInput == FASTINPUT_FEX)
 						{
+							FastInputOffset += LineSize;
 							FastInputSettings.HSplitTop(LineSize, &Button, &FastInputSettings);
 							Ui()->DoScrollbarOption(&g_Config.m_ClFastInputAim, &g_Config.m_ClFastInputAim, &Button, Localize("Aim sensitivity"), 0, 45, &CUi::ms_LinearScrollbarScale, 0, " deg");
 						}
 					}
+
 					// A little extra spacing because these are multi line
 					FastInputSettings.HSplitTop(MarginSmall, nullptr, &FastInputSettings);
 

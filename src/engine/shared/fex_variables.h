@@ -95,10 +95,12 @@ MACRO_CONFIG_INT(ClPredGhostsAlpha, fx_pred_ghosts_alpha, 100, 0, 100, CFGFLAG_C
 MACRO_CONFIG_INT(ClUnpredGhostsAlpha, fx_unpred_ghosts_alpha, 50, 0, 100, CFGFLAG_CLIENT | CFGFLAG_SAVE, "Alpha of unpredicted ghosts (0-100)")
 MACRO_CONFIG_INT(ClRenderGhostAsCircle, fx_render_ghost_as_circle, 0, 0, 1, CFGFLAG_CLIENT | CFGFLAG_SAVE, "Render Ghosts as circles instead of tee")
 
-// Modes: 0=off, 1=all, 2=movement, 3=combat, 4=movement+hook, 5=hook, 6=fire,
-// 7=weapon switch, 8=jump, 9=presses only, 10=aim only, 11=aim+combat
-MACRO_CONFIG_INT(ClFastInput, fx_fast_input, 0, 0, 11, CFGFLAG_CLIENT | CFGFLAG_SAVE, "Fast input mode: repredict immediately for the inputs this mode watches (0=off, 1=all, 2=movement, 3=combat, 4=movement+hook, 5=hook, 6=fire, 7=weapon switch, 8=jump, 9=presses only, 10=aim only, 11=aim+combat)")
-MACRO_CONFIG_INT(ClFastInputAim, fx_fast_input_aim, 3, 0, 45, CFGFLAG_CLIENT | CFGFLAG_SAVE, "Degrees the crosshair must move to trigger the aim fast input modes")
+// Fast input schemes: 0=off, 1=legacy (repredict only), 2=TClient (prediction
+// lead), 3=FeX (lead + repredict + aim + hook refresh)
+MACRO_CONFIG_INT(ClFastInput, fx_fast_input, 0, 0, 3, CFGFLAG_CLIENT | CFGFLAG_SAVE, "Fast input scheme: 0=off, 1=legacy, 2=TClient, 3=FeX")
+MACRO_CONFIG_INT(ClFastInputAmount, fx_fast_input_amount, 20, 0, 40, CFGFLAG_CLIENT | CFGFLAG_SAVE, "Milliseconds of prediction lead fast input applies (rounded to the server tick)")
+MACRO_CONFIG_INT(ClFastInputHook, fx_fast_input_hook, 1, 0, 1, CFGFLAG_CLIENT | CFGFLAG_SAVE, "Repredict while hooking so the hook follows the crosshair")
+MACRO_CONFIG_INT(ClFastInputAim, fx_fast_input_aim, 3, 0, 45, CFGFLAG_CLIENT | CFGFLAG_SAVE, "Degrees the crosshair must move to trigger fast input in the FeX scheme")
 MACRO_CONFIG_INT(ClFastInputOthers, fx_fast_input_others, 0, 0, 1, CFGFLAG_CLIENT | CFGFLAG_SAVE, "Do an extra 1 tick (20ms) for other tees with your fast inputs. (increases visual latency, makes dragging easier)")
 
 MACRO_CONFIG_INT(ClAntiPingImproved, fx_antiping_improved, 0, 0, 1, CFGFLAG_CLIENT | CFGFLAG_SAVE, "Different antiping smoothing algorithm, not compatible with cl_antiping_smooth")

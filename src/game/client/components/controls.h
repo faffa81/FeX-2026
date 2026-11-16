@@ -10,23 +10,16 @@
 #include <game/client/component.h>
 #include <game/generated/protocol.h>
 
-// Fast input modes. The mode decides which parts of the player input trigger
-// an immediate reprediction instead of waiting for the next tick.
-enum EFastInputMode
+// Fast input schemes. Legacy repredicts as soon as an input changes; the
+// TClient and FeX schemes additionally predict the local tee ahead by a
+// configurable number of milliseconds.
+enum EFastInputScheme
 {
 	FASTINPUT_OFF = 0,
-	FASTINPUT_ALL,           // every input field, the original behaviour
-	FASTINPUT_MOVEMENT,      // direction + jump
-	FASTINPUT_COMBAT,        // hook + fire + weapon switch
-	FASTINPUT_MOVEMENT_HOOK, // direction + jump + hook ("run and hook")
-	FASTINPUT_HOOK,
-	FASTINPUT_FIRE,
-	FASTINPUT_WEAPONS,
-	FASTINPUT_JUMP,
-	FASTINPUT_PRESSES,       // every field, but releases do not trigger
-	FASTINPUT_AIM,           // crosshair moved more than the configured angle
-	FASTINPUT_AIM_COMBAT,    // crosshair + hook + fire + weapon switch
-	NUM_FASTINPUT_MODES,
+	FASTINPUT_LEGACY,  // repredict on change, no prediction lead
+	FASTINPUT_TCLIENT, // prediction lead only (TClient style)
+	FASTINPUT_FEX,     // lead + repredict + aim + hook refresh
+	NUM_FASTINPUT_SCHEMES,
 };
 
 enum
@@ -39,10 +32,10 @@ enum
 	FASTINPUT_FIELD_AIM = 1 << 5,
 };
 
-const char *FastInputModeName(int Mode);
-const char *FastInputModeDescription(int Mode);
-// Which input fields a mode watches, 0 for off/unknown modes.
-int FastInputModeMask(int Mode);
+const char *FastInputSchemeName(int Scheme);
+const char *FastInputSchemeDescription(int Scheme);
+// Which input fields cause an immediate reprediction in this scheme.
+int FastInputRepredictMask(int Scheme);
 
 class CControls : public CComponent
 {

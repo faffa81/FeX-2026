@@ -783,6 +783,8 @@ public:
 	protocol7::CNetObjHandler *GetNetObjHandler7() override;
 
 	bool CheckNewInput() override;
+	// Prediction lead in whole ticks for the active fast input scheme.
+	int FastInputTicks() const;
 
 	void aMessage(const char *pString);
 
