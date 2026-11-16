@@ -1,56 +1,59 @@
-# Ignore data-folders outside the root, these are copied around to build
-# directories.
-data/
-!/data/
+# ---------------------------------------------------------------------------
+# FeX - build artifacts
+# ---------------------------------------------------------------------------
+# CMake build directories (any depth, any name starting with build)
+/build/
+/build-*/
+/build_*/
+cmake-build-*/
+out/
 
-docs/
-
-bundle/
-!/other/bundle/
-
-.DS_Store
-.ninja_deps
-.ninja_log
-CACHEDIR.TAG
 CMakeCache.txt
-CMakeFiles
+CMakeFiles/
 CMakeSettings*
 CMakeUserPresets.json
 CPackConfig.cmake
 CPackSourceConfig.cmake
 CTestTestfile.cmake
-Debug
-Makefile
-Release
-SAN.*
-_CPack_Packages/
-build.ninja
-checksummed_*
 cmake_install.cmake
-debug
-gmock.pc
-gmock_main.pc
-googletest-build/
-googletest-download/
-googletest-src/
-gtest.pc
-gtest_main.pc
-install_manifest*.txt
-ninja_package
-pack_*/
-release
+build.ninja
 rules.ninja
-testrunner\[1\]_include.cmake
+.ninja_deps
+.ninja_log
+install_manifest*.txt
+_CPack_Packages/
+pack_*/
+ninja_package
+compile_commands.json
+checksummed_*
 
-/SDL2.framework
+# Compiled objects and libraries
+*.o
+*.obj
+*.a
+*.lib
+*.lo
+*.la
+*.so
+*.so.*
+*.dylib
+*.dll
+*.exe
+*.pdb
+*.ilk
+*.exp
+*.res
+*.spv
+*.dmg
+*.msi
 
-# Android
-local.properties
-
-# Ignore all the generated executables without extensions (for non-Windows
-# systems).
+# ---------------------------------------------------------------------------
+# FeX / DDNet executables (extension-less binaries on non-Windows systems)
+# ---------------------------------------------------------------------------
+FeX
+FeX-Server
+FeX-Server-Launcher
 DDNet
-!DDNet/
 DDNet-Server
 DDNet-Server-Launcher
 libsteam_api.a
@@ -79,66 +82,145 @@ unicode_confusables
 uuid
 versionsrv
 
-# But we still should allow to download mastersrv/twping sources
+# ...but the sources of these tools must stay tracked
 !src/mastersrv
 !src/twping
 
+# ---------------------------------------------------------------------------
+# Generated files
+# ---------------------------------------------------------------------------
 generated
 target
+src/game/generated/
+src/rust-bridge/
+data/
+!/data/
+docs/
+bundle/
+!/other/bundle/
+SAN.*
+gmock.pc
+gmock_main.pc
+googletest-build/
+googletest-download/
+googletest-src/
+gtest.pc
+gtest_main.pc
+testrunner\[1\]_include.cmake
 
-/build*
-/integration_test/*
+# ---------------------------------------------------------------------------
+# Rust
+# ---------------------------------------------------------------------------
+target/
+**/target/
+Cargo.lock.bak
+.rustc_info.json
 
-# IDE project files
-.cache
+# ---------------------------------------------------------------------------
+# IDE / editor
+# ---------------------------------------------------------------------------
+.cache/
+.clangd-out/
 .cproject
 .cmake
 .gdb_history
-.idea
+.idea/
 .project
-.settings
-.vs
-.vscode
-compile_commands.json
-cmake-build-*/*
+.settings/
+.vs/
+.vscode/
+*.code-workspace
+!.vscode/settings.json.example
+*.iml
+*.sln
+*.vcxproj
+*.vcxproj.*
+*.user
+*.suo
+*.opensdf
+*.sdf
+*.filters
+*.vcproj
+*.vcproj.*
 cscope.files
 cscope.out
-out
 tags
-# don't ignore this, it's used for the vscode workspace that ddnet provides
+# ddnet provides a vscode workspace that must stay tracked
 !ddnet-cmake-tools-kits.json
 
-*.a
+# ---------------------------------------------------------------------------
+# Operating systems
+# ---------------------------------------------------------------------------
+.DS_Store
+.AppleDouble
+.LSOverride
+Icon?
+._*
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+
+# ---------------------------------------------------------------------------
+# Xcode / iOS / macOS
+# ---------------------------------------------------------------------------
+*.xcodeproj/
+*.xcworkspace/
+xcuserdata/
+DerivedData/
+*.xcarchive
+*.ipa
+*.dSYM/
+*.dSYM.zip
+*.mobileprovision
+*.entitlements.bak
+Pods/
+.devcontainer/
+
+# ---------------------------------------------------------------------------
+# Android / Gradle
+# ---------------------------------------------------------------------------
+local.properties
+.gradle/
+gradle-app.setting
+*.apk
+*.aab
+*.ap_
+*.dex
+*.class
+captures/
+.externalNativeBuild/
+.cxx/
+
+# ---------------------------------------------------------------------------
+# Logs, dumps and temporary files
+# ---------------------------------------------------------------------------
+*.log
+*.tmp
+*.swp
+*.swo
+*~
+*.bak
+*.orig
+*.rej
+*.patch
+*.diff
+*.prefs
+*.lnk
 *.cmd
 *.csv
-*.dll
-*.dmg
-*.dtb
-*.dylib
-*.exe
+*.zip
+*.tar.gz
+*.tar.xz
+*.7z
 *.fifo
-*.filters
-*.lnk
-*.log
-*.opensdf
-*.patch
-*.pdb
-*.prefs
-*.pyc
-*.res
-*.sdf
-*.sln
-*.so
-*.spv
+*.teehistorian
 *.sqlite
 *.sqlite-shm
 *.sqlite-wal
-*.suo
-*.swp
-*.tar.gz
-*.tar.xz
-*.teehistorian
-*.tmp
-*.user
-*.vcxproj
-*.zip
+*.pyc
+__pycache__/
+.pytest_cache/
+sanitizer-*.supp
+crashdump*.dmp
+*.dmp

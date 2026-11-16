@@ -1,4 +1,5 @@
 #include "fexpets.h"
+#include <algorithm>
 
 #include <game/client/animstate.h>
 #include <game/client/gameclient.h>
@@ -150,7 +151,7 @@ void CPet::OnRender()
 
         if(g_Config.m_ClPetFollowMode == 0)
         {
-            m_Velocity += mix(deltaDamped, deltaWizzy, clamp(deltaLen / 64.0f, 0.0f, 1.0f)) * speedMultiplier;
+            m_Velocity += mix(deltaDamped, deltaWizzy, std::clamp(deltaLen / 64.0f, 0.0f, 1.0f)) * speedMultiplier;
             m_Position += m_Velocity * Delta;
         }
         else if(g_Config.m_ClPetFollowMode == 1)
@@ -165,7 +166,7 @@ void CPet::OnRender()
         }
         else if(g_Config.m_ClPetFollowMode == 3)
         {
-            float factor = clamp(Delta * speedMultiplier, 0.0f, 1.0f);
+            float factor = std::clamp(Delta * speedMultiplier, 0.0f, 1.0f);
             m_Position = m_Position + (m_Target - m_Position) * factor;
             m_Velocity = (m_Target - m_Position) / Delta;
         }
@@ -201,7 +202,7 @@ void CPet::OnRender()
         vec2 DirVel = m_Velocity;
         if(length(DirVel) > 1.0f)
             DirVel = normalize(DirVel);
-        DirTarget = mix(DirMouse, DirVel, clamp(length(m_Velocity) / 32.0f, 0.0f, 1.0f));
+        DirTarget = mix(DirMouse, DirVel, std::clamp(length(m_Velocity) / 32.0f, 0.0f, 1.0f));
     }
     m_Dir = (DirTarget + m_Dir) / 2.0f; // TODO: stop being lazy
 

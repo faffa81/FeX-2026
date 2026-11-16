@@ -2,6 +2,11 @@
 /* If you are missing that file, acquire a complete release at teeworlds.com.                */
 
 #include <chrono>
+#if defined(_WIN32)
+// MSVC provides the same function under the name strtok_s.
+#define strtok_r strtok_s
+#endif
+#include <algorithm>
 #include <limits>
 
 #include <engine/client/checksum.h>
@@ -179,7 +184,7 @@ void CGameClient::OnConsoleInit()
 					      &m_Motd,
 					      &m_Menus,
 					      &m_Tooltips,
-					      &CMenus::m_Binder,
+					      &m_Menus.m_Binder,
 					      &m_GameConsole,
 					      &m_MenuBackground});
 
@@ -2989,7 +2994,7 @@ void CGameClient::OnPredict()
 		pSmoothLocalChar &&
 		RealPredTick && m_PredictedTick >= MIN_TICK)
 	{
-		int PredTime = clamp(Client()->GetPredictionTime(), 0, 8000); // Milliseconds for some reason?? TODO: Use more precision
+		int PredTime = std::clamp(Client()->GetPredictionTime(), 0, 8000); // Milliseconds for some reason?? TODO: Use more precision
 
 		// Nightmare: in order to get 100% accurate comparison to detect mispredictions we must
 		// tick the PREVIOUS predicted world with our CURRENT predicted inputs
@@ -4276,7 +4281,7 @@ vec2 CGameClient::GetFreezePos(int ClientId)
 
 	for(int i = 0; i < 2; i++)
 	{
-		// int64_t Len = clamp(m_aClients[ClientId].m_aSmoothLen[i], (int64_t)1, time_freq());
+		// int64_t Len = std::clamp(m_aClients[ClientId].m_aSmoothLen[i], (int64_t)1, time_freq());
 		// int64_t TimePassed = Now - m_aClients[ClientId].m_aSmoothStart[i];
 		float MixAmount = 0.0f;
 		int SmoothTick;

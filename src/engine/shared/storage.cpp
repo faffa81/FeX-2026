@@ -68,27 +68,28 @@ public:
 		bool Success = true;
 		if(InitializationType == EInitializationType::CLIENT)
 		{
-			Success &= CreateFolder("screenshots", TYPE_SAVE);
-			Success &= CreateFolder("screenshots/auto", TYPE_SAVE);
-			Success &= CreateFolder("screenshots/auto/stats", TYPE_SAVE);
-			Success &= CreateFolder("maps", TYPE_SAVE);
-			Success &= CreateFolder("maps/auto", TYPE_SAVE);
-			Success &= CreateFolder("mapres", TYPE_SAVE);
-			Success &= CreateFolder("downloadedmaps", TYPE_SAVE);
-			Success &= CreateFolder("skins", TYPE_SAVE);
-			Success &= CreateFolder("skins7", TYPE_SAVE);
-			Success &= CreateFolder("downloadedskins", TYPE_SAVE);
-			Success &= CreateFolder("themes", TYPE_SAVE);
-			Success &= CreateFolder("communityicons", TYPE_SAVE);
-			Success &= CreateFolder("assets", TYPE_SAVE);
-			Success &= CreateFolder("assets/emoticons", TYPE_SAVE);
-			Success &= CreateFolder("assets/entities", TYPE_SAVE);
-			Success &= CreateFolder("assets/game", TYPE_SAVE);
-			Success &= CreateFolder("assets/particles", TYPE_SAVE);
-			Success &= CreateFolder("assets/hud", TYPE_SAVE);
-			Success &= CreateFolder("assets/extras", TYPE_SAVE);
+			static constexpr const char *CLIENT_DIRS[] = {
+				"screenshots",
+				"screenshots/auto",
+				"screenshots/auto/stats",
+				"maps",
+				"maps/auto",
+				"mapres",
+				"downloadedmaps",
+				"skins",
+				"skins7",
+				"downloadedskins",
+				"themes",
+				"communityicons",
+				"assets",
+				"assets/emoticons",
+				"assets/entities",
+				"assets/game",
+				"assets/particles",
+				"assets/hud",
+				"assets/extras",
 #if defined(CONF_VIDEORECORDER)
-				"videos"
+				"videos",
 #endif
 			};
 

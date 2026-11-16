@@ -1,4 +1,8 @@
 #include <engine/graphics.h>
+#if defined(_WIN32)
+// MSVC provides the same function under the name strtok_s.
+#define strtok_r strtok_s
+#endif
 #include <engine/shared/config.h>
 
 #include <game/client/animstate.h>

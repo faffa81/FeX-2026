@@ -1,4 +1,5 @@
 #include "fexquickactions.h"
+#include <algorithm>
 
 #include <game/client/gameclient.h>
 #include <game/generated/client_data.h>
@@ -178,13 +179,13 @@ void CActions::RenderSpectatorActionMenu()
     float TimeSinceNoTransition = (time_get() - m_SpectatorActionMenuNotShowTime) / (float)time_freq();
 
     if(m_SpectatorActionMenuActive)
-        AnimationProgress = clamp(TimeSinceTransition / 0.5f, 0.0f, 1.0f);
+        AnimationProgress = std::clamp(TimeSinceTransition / 0.5f, 0.0f, 1.0f);
     else if(AnimationProgress > 0.0f)
-        AnimationProgress = clamp(1.0f - TimeSinceNoTransition / 0.5f, 0.0f, 1.0f);
+        AnimationProgress = std::clamp(1.0f - TimeSinceNoTransition / 0.5f, 0.0f, 1.0f);
 
     if(m_SpectatorActionMenuClosing)
     {
-        AnimationProgress = clamp(1.0f - TimeSinceNoTransition / 0.5f, 0.0f, 1.0f);
+        AnimationProgress = std::clamp(1.0f - TimeSinceNoTransition / 0.5f, 0.0f, 1.0f);
         if(AnimationProgress <= 0.0f)
         {
             m_SpectatorActionMenuActive = false;

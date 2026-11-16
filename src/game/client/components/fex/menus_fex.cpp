@@ -1,4 +1,5 @@
 #include <base/log.h>
+#include <algorithm>
 #include <base/math.h>
 #include <base/system.h>
 
@@ -2632,12 +2633,12 @@ bool CMenus::DoSliderWithScaledValue(const void *pId, int *pOption, const CUIRec
 	if(Input()->ModifierIsPressed() && Input()->KeyPress(KEY_MOUSE_WHEEL_UP) && Ui()->MouseInside(pRect))
 	{
 		Value += Increment;
-		Value = clamp(Value, Min, Max);
+		Value = std::clamp(Value, Min, Max);
 	}
 	if(Input()->ModifierIsPressed() && Input()->KeyPress(KEY_MOUSE_WHEEL_DOWN) && Ui()->MouseInside(pRect))
 	{
 		Value -= Increment;
-		Value = clamp(Value, Min, Max);
+		Value = std::clamp(Value, Min, Max);
 	}
 
 	char aBuf[256];
@@ -2646,7 +2647,7 @@ bool CMenus::DoSliderWithScaledValue(const void *pId, int *pOption, const CUIRec
 	if(NoClampValue)
 	{
 		// clamp the value internally for the scrollbar
-		Value = clamp(Value, Min, Max);
+		Value = std::clamp(Value, Min, Max);
 	}
 
 	CUIRect Label, ScrollBar;
@@ -3318,7 +3319,7 @@ void CMenus::RenderBar(CUIRect MainView)
         str_format(aStatusBuf, sizeof(aStatusBuf), pStatusFormat, Ping, NumClients, warCount, teamCount, helperCount, otherCount);
         Ui()->DoLabel(&StatusLabelRect, aStatusBuf, 12.0f / scale, TEXTALIGN_LEFT);
         static CButtonContainer s_RefreshButton;
-        if(DoButton_FontIconColor(&s_RefreshButton, FONT_ICON_ARROW_ROTATE_RIGHT, 0, &RefreshRect, 0, IGraphics::CORNER_ALL, true, ColorRGBA(ColorA)))
+        if(DoButton_FontIcon(&s_RefreshButton, FONT_ICON_ARROW_ROTATE_RIGHT, 0, &RefreshRect, 0, IGraphics::CORNER_ALL, true, ColorRGBA(ColorA)))
         {
             ServerBrowser()->Refresh(0, true);
             for(size_t j = 0; j < GameClient()->m_WarList.m_WarEntries.size(); j++)
