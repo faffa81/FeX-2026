@@ -21,11 +21,6 @@ jobs:
       with:
         submodules: recursive
 
-    - name: Set up MSVC
-      uses: ilammy/msvc-dev-cmd@v1
-      with:
-        arch: x64
-
     - name: Set up Rust
       uses: dtolnay/rust-toolchain@stable
 
@@ -33,26 +28,34 @@ jobs:
       uses: Swatinem/rust-cache@v2
 
     # Same configuration that is used for local FeX builds: Ninja, MSVC, client
-    # only. Kept warning-tolerant on purpose, the FeX sources are not held to
-    # DDNet's -Werror baseline.
-    - name: Configure
-      run: >
-        cmake -S . -B build -G Ninja
-        -DCMAKE_BUILD_TYPE=RelWithDebInfo
-        -DCLIENT=ON -DSERVER=OFF -DTOOLS=OFF -DDOWNLOAD_GTEST=OFF
-
-    # Output goes to a file so a failure only prints the tail, which keeps the
-    # job log readable and shows the actual compiler error.
-    - name: Build client
-      shell: pwsh
+    # only. Build output goes to files so a failure prints just the error tail
+    # instead of the whole compile log.
+    - name: Configure and build
+      shell: cmd
       run: |
-        cmake --build build --parallel *> build.log
-        $status = $LASTEXITCODE
-        if ($status -ne 0) {
-          Write-Host "Build failed, last lines of the log:"
-          Get-Content build.log -Tail 60
-        }
-        exit $status
+        for /f "usebackq tokens=*" %%i in (`"%ProgramFiles(x86)%\Microsoft Visual Studio\Installer\vswhere.exe" -latest -products * -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -property installationPath`) do set "VSPATH=%%i"
+        if not defined VSPATH (
+          echo Could not locate a Visual Studio installation.
+          exit /b 1
+        )
+        call "%VSPATH%\VC\Auxiliary\Build\vcvars64.bat" >nul
+        if errorlevel 1 exit /b 1
+
+        cmake -S . -B build -G Ninja ^
+          -DCMAKE_BUILD_TYPE=RelWithDebInfo ^
+          -DCLIENT=ON -DSERVER=OFF -DTOOLS=OFF -DDOWNLOAD_GTEST=OFF > configure.log 2>&1
+        if errorlevel 1 (
+          echo Configure failed:
+          type configure.log
+          exit /b 1
+        )
+
+        cmake --build build --parallel > build.log 2>&1
+        if errorlevel 1 (
+          echo Build failed, last lines of the log:
+          powershell -NoProfile -Command "Get-Content build.log -Tail 60"
+          exit /b 1
+        )
 
     - name: Upload client
       uses: actions/upload-artifact@v4
