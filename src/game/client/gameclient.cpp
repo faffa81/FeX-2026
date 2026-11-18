@@ -2705,8 +2705,8 @@ void CGameClient::UpdateEditorIngameMoved()
 
 int CGameClient::FastInputTicks() const
 {
-	if(g_Config.m_ClFastInput < FASTINPUT_TCLIENT)
-		return 0; // legacy repredicts instead of leading
+	if(!g_Config.m_ClFastInput)
+		return 0;
 
 	const int Amount = std::clamp(g_Config.m_ClFastInputAmount, 0, 40);
 	if(Amount <= 0)

@@ -2424,6 +2424,8 @@ if(CLIENT)
     components/fex/playerrelations.cpp
     components/fex/fexwarlist.h
     components/fex/fx_enums.h
+    components/fex/fexconfigmanager.cpp
+    components/fex/fexconfigmanager.h
     components/fex/fexlanguage.cpp
     components/fex/fexlanguage.h
     components/fex/menus_fex.cpp

@@ -49,6 +49,9 @@ public:
 	char m_aName[MAX_NAME_LENGTH] = "";
 	char m_aClan[MAX_CLAN_LENGTH] = "";
 	char m_aReason[MAX_WARLIST_REASON_LENGTH] = "";
+	// 0 = an infinite war, otherwise the unix time the war ends and the entry
+	// is dropped. Temporary wars are registered with a duration.
+	int64_t m_ExpireTime = 0;
 
 	CWarType *m_pWarType = nullptr;
 	bool m_Imported = false;
@@ -85,6 +88,8 @@ public:
 	}
 
 	int GetDeleteId() const { return m_DeleteButtonId; }
+	bool IsInfiniteWar() const { return m_ExpireTime == 0; }
+	bool IsExpired(int64_t Now) const { return m_ExpireTime > 0 && Now >= m_ExpireTime; }
 };
 
 // E-Client [Mutes]
@@ -244,13 +249,16 @@ public:
 
 	void RemoveWarEntry(const char *pName, const char *pClan);
 
-	void AddWarEntry(const char *pName, const char *pClan, const char *pReason, const char *pType);
+	void AddWarEntry(const char *pName, const char *pClan, const char *pReason, const char *pType, int64_t ExpireTime = 0);
 	void AddWarType(const char *pType, ColorRGBA Color);
 
 	void RemoveWarEntry(const char *pName, const char *pClan, const char *pType);
 	void RemoveWarType(const char *pType);
 
 	void RemoveWarEntryDuplicates(const char *pName, const char *pClan);
+
+	// Drops every temporary war whose duration ran out.
+	void RemoveExpiredWars();
 
 	void RemoveWarEntry(CWarEntry *Entry);
 

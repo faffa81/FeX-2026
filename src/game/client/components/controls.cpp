@@ -449,46 +449,6 @@ float CControls::GetMaxMouseDistance() const
 	return minimum((FollowFactor != 0 ? CameraMaxDistance / FollowFactor + DeadZone : MaxDistance), MaxDistance);
 }
 
-const char *FastInputSchemeName(int Scheme)
-{
-	switch(Scheme)
-	{
-	case FASTINPUT_OFF: return "Off";
-	case FASTINPUT_LEGACY: return "Legacy (repredict)";
-	case FASTINPUT_TCLIENT: return "TClient (lead)";
-	case FASTINPUT_FEX: return "FeX (lead + repredict)";
-	default: return "Unknown";
-	}
-}
-
-const char *FastInputSchemeDescription(int Scheme)
-{
-	switch(Scheme)
-	{
-	case FASTINPUT_OFF: return "Fast input disabled.";
-	case FASTINPUT_LEGACY: return "Repredict on every input change, no lead.";
-	case FASTINPUT_TCLIENT: return "Prediction lead only (TClient style).";
-	case FASTINPUT_FEX: return "Lead + repredict + aim + hook refresh.";
-	default: return "";
-	}
-}
-
-int FastInputRepredictMask(int Scheme)
-{
-	switch(Scheme)
-	{
-	case FASTINPUT_LEGACY:
-		return FASTINPUT_FIELD_DIRECTION | FASTINPUT_FIELD_JUMP | FASTINPUT_FIELD_HOOK |
-		       FASTINPUT_FIELD_FIRE | FASTINPUT_FIELD_WEAPON;
-	case FASTINPUT_FEX:
-		return FASTINPUT_FIELD_DIRECTION | FASTINPUT_FIELD_JUMP | FASTINPUT_FIELD_HOOK |
-		       FASTINPUT_FIELD_FIRE | FASTINPUT_FIELD_WEAPON | FASTINPUT_FIELD_AIM;
-	default:
-		// TClient gets its latency win from the prediction lead itself.
-		return 0;
-	}
-}
-
 // True when the crosshair moved by at least ThresholdDeg between two inputs.
 static bool FastInputAimMoved(const CNetObj_PlayerInput &Old, const CNetObj_PlayerInput &Now, float ThresholdDeg)
 {
@@ -508,8 +468,6 @@ static bool FastInputAimMoved(const CNetObj_PlayerInput &Old, const CNetObj_Play
 
 bool CControls::CheckNewInput()
 {
-	const int Scheme = g_Config.m_ClFastInput;
-
 	CNetObj_PlayerInput TestInput = m_aInputData[g_Config.m_ClDummy];
 	TestInput.m_Direction = 0;
 	if(m_aInputDirectionLeft[g_Config.m_ClDummy] && !m_aInputDirectionRight[g_Config.m_ClDummy])
@@ -521,29 +479,27 @@ bool CControls::CheckNewInput()
 	TestInput.m_TargetX = (int)m_aMousePos[g_Config.m_ClDummy].x;
 	TestInput.m_TargetY = (int)m_aMousePos[g_Config.m_ClDummy].y;
 
-	if(Scheme <= FASTINPUT_OFF || Scheme >= NUM_FASTINPUT_SCHEMES)
+	if(!g_Config.m_ClFastInput)
 	{
 		m_FastInput = TestInput;
 		return false;
 	}
 
-	const int Mask = FastInputRepredictMask(Scheme);
 	bool NewInput = false;
 
-	if((Mask & FASTINPUT_FIELD_DIRECTION) && m_FastInput.m_Direction != TestInput.m_Direction)
+	if(m_FastInput.m_Direction != TestInput.m_Direction)
 		NewInput = true;
-	if((Mask & FASTINPUT_FIELD_JUMP) && m_FastInput.m_Jump != TestInput.m_Jump)
+	if(m_FastInput.m_Jump != TestInput.m_Jump)
 		NewInput = true;
-	if((Mask & FASTINPUT_FIELD_HOOK) && m_FastInput.m_Hook != TestInput.m_Hook)
+	if(m_FastInput.m_Hook != TestInput.m_Hook)
 		NewInput = true;
-	if((Mask & FASTINPUT_FIELD_FIRE) && m_FastInput.m_Fire != TestInput.m_Fire)
+	if(m_FastInput.m_Fire != TestInput.m_Fire)
 		NewInput = true;
-	if((Mask & FASTINPUT_FIELD_WEAPON) &&
-		(m_FastInput.m_NextWeapon != TestInput.m_NextWeapon ||
-			m_FastInput.m_PrevWeapon != TestInput.m_PrevWeapon ||
-			m_FastInput.m_WantedWeapon != TestInput.m_WantedWeapon))
+	if(m_FastInput.m_NextWeapon != TestInput.m_NextWeapon ||
+		m_FastInput.m_PrevWeapon != TestInput.m_PrevWeapon ||
+		m_FastInput.m_WantedWeapon != TestInput.m_WantedWeapon)
 		NewInput = true;
-	if((Mask & FASTINPUT_FIELD_AIM) && FastInputAimMoved(m_FastInput, TestInput, (float)g_Config.m_ClFastInputAim))
+	if(FastInputAimMoved(m_FastInput, TestInput, (float)g_Config.m_ClFastInputAim))
 		NewInput = true;
 
 	// Hook aim refresh: while the hook is being pressed and sub-tick aiming is

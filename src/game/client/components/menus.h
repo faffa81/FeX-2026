@@ -936,6 +936,8 @@ public:
 
 	void RenderSettingsStatusBar(CUIRect MainView);
 
+	void RenderSettingsFeXConfigs(CUIRect MainView);
+
 	void RenderSettingsBindWheel(CUIRect MainView);
 
 	void RenderBar(CUIRect MainView);

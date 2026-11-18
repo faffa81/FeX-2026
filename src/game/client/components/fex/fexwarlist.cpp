@@ -15,9 +15,23 @@
 #include "fexwarlist.h"
 #include "fex.h"
 
+#include <ctime>
+
 void CWarList::OnNewSnapshot()
 {
+	RemoveExpiredWars();
 	UpdateWarPlayers();
+}
+
+void CWarList::RemoveExpiredWars()
+{
+	const int64_t Now = ::time(nullptr);
+	const size_t SizeBefore = m_WarEntries.size();
+	m_WarEntries.erase(std::remove_if(m_WarEntries.begin(), m_WarEntries.end(),
+				   [Now](const CWarEntry &Entry) { return Entry.IsExpired(Now); }),
+		m_WarEntries.end());
+	if(m_WarEntries.size() != SizeBefore)
+		OnWarEntryChange();
 }
 
 void CWarList::OnConsoleInit()
@@ -27,7 +41,7 @@ void CWarList::OnConsoleInit()
 		pConfigManager->RegisterFXCallback(ConfigSaveCallback, this);
 
 	Console()->Register("update_war_group", "i[group_index] s[name] i[color]", CFGFLAG_CLIENT, ConUpsertWarType, this, "Update or add a specific war group");
-	Console()->Register("add_war_entry", "s[group] s[name] s[clan] r[reason]", CFGFLAG_CLIENT, ConAddWarEntry, this, "Adds a specific war entry");
+	Console()->Register("add_war_entry", "s[group] s[name] s[clan] r[reason] ?i[expire]", CFGFLAG_CLIENT, ConAddWarEntry, this, "Adds a specific war entry, optionally until a unix time");
 	Console()->Register("add_mute", "s[name]", CFGFLAG_CLIENT, ConAddMuteEntry, this, "Add player to mute"); // E-Client [Mutes]
 
 	Console()->Register("war_name", "s[group] s[name] ?r[reason]", CFGFLAG_CLIENT, ConName, this, "Add a name war entry");
@@ -134,8 +148,9 @@ void CWarList::ConAddWarEntry(IConsole::IResult *pResult, void *pUserData)
 	const char *pName = pResult->GetString(1);
 	const char *pClan = pResult->GetString(2);
 	const char *pReason = pResult->GetString(3);
+	const int64_t ExpireTime = pResult->NumArguments() > 4 ? (int64_t)pResult->GetInteger(4) : 0;
 	CWarList *pThis = static_cast<CWarList *>(pUserData);
-	pThis->AddWarEntry(pName, pClan, pReason, pType);
+	pThis->AddWarEntry(pName, pClan, pReason, pType, ExpireTime);
 }
 void CWarList::ConUpsertWarType(IConsole::IResult *pResult, void *pUserData)
 {
@@ -409,7 +424,7 @@ void CWarList::UpsertWarType(int Index, const char *pType, ColorRGBA Color)
 }
 
 
-void CWarList::AddWarEntry(const char *pName, const char *pClan, const char *pReason, const char *pType)
+void CWarList::AddWarEntry(const char *pName, const char *pClan, const char *pReason, const char *pType, int64_t ExpireTime)
 {
 	if(str_comp(pName, "") == 0 && str_comp(pClan, "") == 0)
 		return;
@@ -423,6 +438,7 @@ void CWarList::AddWarEntry(const char *pName, const char *pClan, const char *pRe
 
 	CWarEntry Entry(WarType);
 	str_copy(Entry.m_aReason, pReason);
+	Entry.m_ExpireTime = ExpireTime;
 
 	if(str_comp(pClan, "") != 0)
 		str_copy(Entry.m_aClan, pClan);
@@ -837,7 +853,7 @@ void CWarList::ConfigSaveCallback(IConfigManager *pConfigManager, void *pUserDat
 		EscapeParam(aEscapeClan, Entry.m_aClan, sizeof(aEscapeClan));
 		EscapeParam(aEscapeReason, Entry.m_aReason, sizeof(aEscapeReason));
 
-		str_format(aBuf, sizeof(aBuf), "add_war_entry \"%s\" \"%s\" \"%s\" \"%s\"", aEscapeType, aEscapeName, aEscapeClan, aEscapeReason);
+		str_format(aBuf, sizeof(aBuf), "add_war_entry \"%s\" \"%s\" \"%s\" \"%s\" %d", aEscapeType, aEscapeName, aEscapeClan, aEscapeReason, (int)Entry.m_ExpireTime);
 		pThis->WriteLine(aBuf);
 	}
 	for(CMuteEntry &Entry : pThis->m_MuteEntries)
@@ -945,7 +961,7 @@ static int ColorToInt(const ColorRGBA &Color)
 
 void getCurrentLocalTime(char *pBuffer, size_t bufferSize)
 {
-    time_t now = time(nullptr);
+    time_t now = ::time(nullptr);
 #if defined(_WIN32) || defined(_WIN64)
     struct tm localTime;
     if(localtime_s(&localTime, &now) != 0)

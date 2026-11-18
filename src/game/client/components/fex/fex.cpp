@@ -9,6 +9,7 @@
 #include <game/client/gameclient.h>
 #include <game/generated/protocol.h>
 #include "fex.h"
+#include "fexconfigmanager.h"
 #include <base/system.h>
 #include <base/math.h>
 #include <cmath>
@@ -360,6 +361,7 @@ void CFex::OnConsoleInit()
 void CFex::OnInit()
 {
 	g_FeXLanguage.Init(Storage());
+	g_FeXConfigManager.Init(Storage());
 	// On client load
 	TextRender()->SetCustomFace(g_Config.m_ClCustomFont);
 

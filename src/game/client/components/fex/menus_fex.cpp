@@ -17,6 +17,7 @@
 
 #include <game/client/animstate.h>
 #include <game/client/components/chat.h>
+#include <game/client/components/fex/fexconfigmanager.h>
 #include <game/client/components/fex/fexlanguage.h>
 #include <game/client/components/menu_background.h>
 #include <game/client/components/sounds.h>
@@ -36,6 +37,7 @@
 #include "game/client/components/fex/fextrails.h"
 
 #include <array>
+#include <ctime>
 #include <chrono>
 #include <memory>
 #include <numeric>
@@ -52,7 +54,8 @@ enum {
 	FEX_TAB_BINDWHEEL = 3,
 	FEX_TAB_QUICKACTIONS = 4,
 	FEX_TAB_STATUSBAR = 5,
-    NUMBER_OF_FEX_TABS = 6
+    FEX_TAB_CONFIGS = 6,
+    NUMBER_OF_FEX_TABS = 7
 };
 
 typedef struct
@@ -120,6 +123,7 @@ void CMenus::RenderSettingsFeX(CUIRect MainView)
         FeXLocalize("FeX Bindwheel"),
 		FeXLocalize("FeX Quickactions"),
         FeXLocalize("FeX Statusbar"),
+        FeXLocalize("FeX Configs"),
     };
 
     for(int Tab = 0; Tab < NUMBER_OF_FEX_TABS; ++Tab)
@@ -151,6 +155,7 @@ void CMenus::RenderSettingsFeX(CUIRect MainView)
             case 4: s_CurTab = FEX_TAB_BINDWHEEL; break;
 			case 5: s_CurTab = FEX_TAB_QUICKACTIONS; break;
             case 6: s_CurTab = FEX_TAB_STATUSBAR; break;
+            case 7: s_CurTab = FEX_TAB_CONFIGS; break;
             default: s_CurTab = FEX_TAB_SETTINGS; break;
         }
         m_MenuTabInitialized = true;
@@ -183,8 +188,13 @@ void CMenus::RenderSettingsFeX(CUIRect MainView)
     }
     else if(s_CurTab == FEX_TAB_STATUSBAR)
     {
-        g_Config.m_ClMenuTab = 5;
+        g_Config.m_ClMenuTab = 6;
         RenderSettingsStatusBar(MainView);
+    }
+    else if(s_CurTab == FEX_TAB_CONFIGS)
+    {
+        g_Config.m_ClMenuTab = 7;
+        RenderSettingsFeXConfigs(MainView);
     }
 
 
@@ -432,40 +442,25 @@ void CMenus::RenderFex(CUIRect MainView, int CurPage)
 					FastInputSettings.HSplitTop(HeaderHeight, &Label, &FastInputSettings);
 					Ui()->DoLabel(&Label, FeXLocalize("Input"), HeadlineFontSize, TEXTALIGN_ML);
 
-					static CUi::SDropDownState s_FastInputSchemeState;
-					static std::vector<const char *> s_vpFastInputSchemeNames;
-					if(s_vpFastInputSchemeNames.empty())
-					{
-						for(int i = 0; i < NUM_FASTINPUT_SCHEMES; i++)
-							s_vpFastInputSchemeNames.push_back(FastInputSchemeName(i));
-					}
-
-					FastInputSettings.HSplitTop(LineSize, &Button, &FastInputSettings);
-					s_FastInputSchemeState.m_SelectionPopupContext.m_pScrollRegion = &s_ScrollRegion;
-					g_Config.m_ClFastInput = Ui()->DoDropDown(&Button, g_Config.m_ClFastInput, s_vpFastInputSchemeNames.data(), s_vpFastInputSchemeNames.size(), s_FastInputSchemeState);
-
 					FastInputOffset += LineSize;
-					FastInputSettings.HSplitTop(LineSize, &Label, &FastInputSettings);
-					Ui()->DoLabel(&Label, FastInputSchemeDescription(g_Config.m_ClFastInput), 10.0f, TEXTALIGN_ML);
+					FastInputSettings.HSplitTop(LineSize, &Button, &FastInputSettings);
+					DoButton_CheckBoxAutoVMarginAndSet(&g_Config.m_ClFastInput, FeXLocalize("Fast input"), &g_Config.m_ClFastInput, &FastInputSettings, LineSize);
 
-					if(g_Config.m_ClFastInput != FASTINPUT_OFF)
+					if(g_Config.m_ClFastInput)
 					{
 						FastInputOffset += LineSize;
 						FastInputSettings.HSplitTop(LineSize, &Button, &FastInputSettings);
 						DoSliderWithScaledValue(&g_Config.m_ClFastInputAmount, &g_Config.m_ClFastInputAmount, &Button, FeXLocalize("Lead"), 0, 40, 1, &CUi::ms_LinearScrollbarScale, CUi::SCROLLBAR_OPTION_NOCLAMPVALUE, "ms");
 
 						FastInputOffset += LineSize;
-						DoButton_CheckBoxAutoVMarginAndSet(&g_Config.m_ClFastInputOthers, FeXLocalize("Fast input others"), &g_Config.m_ClFastInputOthers, &FastInputSettings, LineSize);
+						FastInputSettings.HSplitTop(LineSize, &Button, &FastInputSettings);
+						Ui()->DoScrollbarOption(&g_Config.m_ClFastInputAim, &g_Config.m_ClFastInputAim, &Button, FeXLocalize("Aim sensitivity"), 0, 45, &CUi::ms_LinearScrollbarScale, 0, " deg");
 
 						FastInputOffset += LineSize;
 						DoButton_CheckBoxAutoVMarginAndSet(&g_Config.m_ClFastInputHook, FeXLocalize("Hook aim refresh"), &g_Config.m_ClFastInputHook, &FastInputSettings, LineSize);
 
-						if(g_Config.m_ClFastInput == FASTINPUT_FEX)
-						{
-							FastInputOffset += LineSize;
-							FastInputSettings.HSplitTop(LineSize, &Button, &FastInputSettings);
-							Ui()->DoScrollbarOption(&g_Config.m_ClFastInputAim, &g_Config.m_ClFastInputAim, &Button, FeXLocalize("Aim sensitivity"), 0, 45, &CUi::ms_LinearScrollbarScale, 0, " deg");
-						}
+						FastInputOffset += LineSize;
+						DoButton_CheckBoxAutoVMarginAndSet(&g_Config.m_ClFastInputOthers, FeXLocalize("Fast input others"), &g_Config.m_ClFastInputOthers, &FastInputSettings, LineSize);
 					}
 
 					// A little extra spacing because these are multi line
@@ -2136,6 +2131,24 @@ void CMenus::RenderChatPreview(CUIRect MainView)
 	TextRender()->TextColor(TextRender()->DefaultTextColor());
 }
 
+// Remaining time of a war entry in the list: "inf" for never ending wars.
+static void FormatWarTime(char *pBuf, int Size, int64_t ExpireTime)
+{
+	if(ExpireTime <= 0)
+	{
+		str_copy(pBuf, FeXLocalize("inf"), Size);
+		return;
+	}
+
+	int64_t Left = ExpireTime - (int64_t)::time(nullptr);
+	if(Left < 0)
+		Left = 0;
+	if(Left >= 3600)
+		str_format(pBuf, Size, "%dh%02dm", (int)(Left / 3600), (int)((Left % 3600) / 60));
+	else
+		str_format(pBuf, Size, "%dm", (int)(Left / 60));
+}
+
 void CMenus::RenderSettingsWarList(CUIRect MainView)
 {
 	CUIRect RightView, LeftView, TrailSettings1, TrailSettings2, TrailSettings3, TrailSettings4, Button, ButtonL, ButtonR, Label;
@@ -2155,6 +2168,8 @@ void CMenus::RenderSettingsWarList(CUIRect MainView)
 	static char s_aEntryReason[MAX_WARLIST_REASON_LENGTH];
 	static int s_IsClan = 0;
 	static int s_IsName = 1;
+	static int s_InfiniteWar = 1;
+	static int s_TempWarMinutes = 60;
 
 	LeftView.VSplitMid(&TrailSettings1, &TrailSettings2, Margin);
 	RightView.VSplitMid(&TrailSettings3, &TrailSettings4, Margin);
@@ -2271,6 +2286,16 @@ void CMenus::RenderSettingsWarList(CUIRect MainView)
 		EntryRect.HMargin(MarginExtraSmall, &EntryRect);
 		EntryRect.HSplitMid(&EntryRect, &WarType, MarginSmall);
 
+		{
+			CUIRect WarTime;
+			WarType.VSplitRight(42.0f, &WarType, &WarTime);
+			char aWarTime[32];
+			FormatWarTime(aWarTime, sizeof(aWarTime), pEntry->m_ExpireTime);
+			TextRender()->TextColor(ColorRGBA(1.0f, 1.0f, 1.0f, 0.5f));
+			Ui()->DoLabel(&WarTime, aWarTime, 10.0f, TEXTALIGN_MR);
+			TextRender()->TextColor(TextRender()->DefaultTextColor());
+		}
+
 		Ui()->DoLabel(&EntryRect, aBuf, StandardFontSize, TEXTALIGN_ML);
 		TextRender()->TextColor(pEntry->m_pWarType->m_Color);
 		Ui()->DoLabel(&WarType, pEntry->m_pWarType->m_aWarName, StandardFontSize, TEXTALIGN_ML);
@@ -2369,6 +2394,7 @@ void CMenus::RenderSettingsWarList(CUIRect MainView)
 	TrailSettings2.HSplitTop(LineSize * 2.0f, &Button, &TrailSettings2);
 	Button.VSplitMid(&ButtonL, &ButtonR, MarginSmall);
 
+	const int64_t WarExpire = s_InfiniteWar ? 0 : (int64_t)::time(nullptr) + (int64_t)s_TempWarMinutes * 60;
 	if(DoButtonLineSize_Menu(&s_OverrideButton, FeXLocalize("Override Entry"), 0, &ButtonL, LineSize) && pSelectedEntry)
 	{
 		if(pSelectedEntry && pSelectedType && (str_comp(s_aEntryName, "") != 0 || str_comp(s_aEntryClan, "") != 0))
@@ -2377,12 +2403,13 @@ void CMenus::RenderSettingsWarList(CUIRect MainView)
 			str_copy(pSelectedEntry->m_aClan, s_aEntryClan);
 			str_copy(pSelectedEntry->m_aReason, s_aEntryReason);
 			pSelectedEntry->m_pWarType = pSelectedType;
+			pSelectedEntry->m_ExpireTime = WarExpire;
 		}
 	}
 	if(DoButtonLineSize_Menu(&s_AddButton, FeXLocalize("Add Entry"), 0, &ButtonR, LineSize))
 	{
 		if(pSelectedType)
-			GameClient()->m_WarList.AddWarEntry(s_aEntryName, s_aEntryClan, s_aEntryReason, pSelectedType->m_aWarName);
+			GameClient()->m_WarList.AddWarEntry(s_aEntryName, s_aEntryClan, s_aEntryReason, pSelectedType->m_aWarName, WarExpire);
 	}
 	TrailSettings2.HSplitTop(MarginSmall, nullptr, &TrailSettings2);
 	TrailSettings2.HSplitTop(HeadlineFontSize + MarginSmall, &Button, &TrailSettings2);
@@ -2393,6 +2420,16 @@ void CMenus::RenderSettingsWarList(CUIRect MainView)
 		TextRender()->TextColor(pSelectedType->m_Color);
 		Ui()->DoLabel(&Button, pSelectedType->m_aWarName, HeadlineFontSize, TEXTALIGN_MC);
 		TextRender()->TextColor(TextRender()->DefaultTextColor());
+	}
+
+	// Infinite wars never expire, temporary wars are dropped once their
+	// duration ran out.
+	TrailSettings2.HSplitTop(MarginSmall, nullptr, &TrailSettings2);
+	DoButton_CheckBoxAutoVMarginAndSet(&s_InfiniteWar, FeXLocalize("Infinite war"), &s_InfiniteWar, &TrailSettings2, LineSize);
+	if(!s_InfiniteWar)
+	{
+		TrailSettings2.HSplitTop(LineSize, &Button, &TrailSettings2);
+		DoSliderWithScaledValue(&s_TempWarMinutes, &s_TempWarMinutes, &Button, FeXLocalize("War duration"), 1, 1440, 1, &CUi::ms_LinearScrollbarScale, CUi::SCROLLBAR_OPTION_NOCLAMPVALUE, " min");
 	}
 
 	TrailSettings2.HSplitBottom(150.0f, nullptr, &TrailSettings2);
@@ -4076,4 +4113,289 @@ void CMenus::RenderSettingsQuickActions(CUIRect MainView)
 	LeftView.HSplitTop(Spacing, nullptr, &LeftView);
 	LeftView.HSplitTop(LabelHeight * 2.0f, &Row, &LeftView);
 	Ui()->DoLabel(&Row, "In game: W opens, S switches page, F/D/A run the actions.", 10.0f, TEXTALIGN_ML);
+}
+
+void CMenus::RenderSettingsFeXConfigs(CUIRect MainView)
+{
+	static int s_Domain = 0;
+	static char s_aFolder[128] = "";
+	static char s_aSelected[128] = "";
+	static bool s_SelectedIsFolder = false;
+	static char s_aSaveName[64] = "";
+	static char s_aFolderName[64] = "";
+	static char s_aMessage[256] = "";
+
+	static std::vector<CFeXConfigManager::SEntry> s_vFolders;
+	static std::vector<CFeXConfigManager::SEntry> s_vConfigs;
+	static int s_ListedDomain = -1;
+	static char s_aListedFolder[128] = "";
+	static bool s_NeedRefresh = true;
+
+	CFeXConfigManager &Library = g_FeXConfigManager;
+	const int NumDomains = maximum(1, Library.NumDomains());
+	const int Domain = std::clamp(s_Domain, 0, NumDomains - 1);
+	s_Domain = Domain;
+
+	if(s_NeedRefresh || s_ListedDomain != Domain || str_comp_nocase(s_aListedFolder, s_aFolder) != 0)
+	{
+		Library.ListFolders(Domain, s_aFolder, s_vFolders);
+		Library.ListConfigs(Domain, s_aFolder, s_vConfigs);
+		s_ListedDomain = Domain;
+		str_copy(s_aListedFolder, s_aFolder, sizeof(s_aListedFolder));
+		s_NeedRefresh = false;
+	}
+
+	CUIRect Row, Label, Button, Left, Right, ListRect, InputRect;
+	char aBuf[IO_MAX_PATH_LENGTH + 128];
+
+	// ***** Domain ***** //
+	MainView.HSplitTop(LineSize, &Row, &MainView);
+	{
+		static CUi::SDropDownState s_DomainState;
+		static CScrollRegion s_DomainScroll;
+		static std::vector<const char *> s_vpDomainNames;
+		s_vpDomainNames.clear();
+		for(int i = 0; i < Library.NumDomains(); i++)
+			s_vpDomainNames.push_back(FeXLocalize(Library.DomainName(i)));
+		if(s_vpDomainNames.empty())
+			s_vpDomainNames.push_back("DDNet config");
+
+		CUIRect DropDown = Row;
+		Row.VSplitLeft(120.0f, &Label, &DropDown);
+		Ui()->DoLabel(&Label, FeXLocalize("Config domain"), FontSize, TEXTALIGN_ML);
+		s_DomainState.m_SelectionPopupContext.m_pScrollRegion = &s_DomainScroll;
+		const int NewDomain = Ui()->DoDropDown(&DropDown, Domain, s_vpDomainNames.data(), s_vpDomainNames.size(), s_DomainState);
+		if(NewDomain != s_Domain)
+		{
+			s_Domain = NewDomain;
+			s_aFolder[0] = '\0';
+			s_aSelected[0] = '\0';
+			s_aMessage[0] = '\0';
+			s_NeedRefresh = true;
+		}
+	}
+
+	// ***** Current folder + library folder ***** //
+	MainView.HSplitTop(LineSize + MarginSmall, &Row, &MainView);
+	{
+		CUIRect PathRect, OpenButton;
+		Row.VSplitLeft(120.0f, nullptr, &PathRect);
+		PathRect.VSplitRight(150.0f, &PathRect, &OpenButton);
+
+		char aPath[IO_MAX_PATH_LENGTH];
+		Library.GetFolderPath(Domain, s_aFolder, aPath, sizeof(aPath));
+		str_format(aBuf, sizeof(aBuf), "%s: %s", FeXLocalize("Library"), aPath);
+		Ui()->DoLabel(&PathRect, aBuf, 11.0f, TEXTALIGN_ML);
+
+		static CButtonContainer s_OpenLibraryButton;
+		if(DoButton_Menu(&s_OpenLibraryButton, FeXLocalize("Open library"), 0, &OpenButton))
+			Client()->ViewFile(aPath);
+	}
+
+	MainView.HSplitTop(MarginSmall, nullptr, &MainView);
+	MainView.VSplitMid(&Left, &Right, Margin);
+	Left.VSplitLeft(Margin, nullptr, &Left);
+	Right.VSplitRight(Margin, &Right, nullptr);
+
+	// ***** Folders and saved configs ***** //
+	Left.HSplitTop(HeadlineHeight, &Label, &Left);
+	Ui()->DoLabel(&Label, FeXLocalize("Saved configs"), FontSize, TEXTALIGN_ML);
+	Left.HSplitBottom(LineSize * 3.0f + MarginSmall, &ListRect, &Left);
+
+	const int TotalItems = (int)s_vFolders.size() + (int)s_vConfigs.size();
+	int SelectedIndex = -1;
+	for(int i = 0; i < TotalItems; i++)
+	{
+		const bool IsFolder = i < (int)s_vFolders.size();
+		const char *pName = IsFolder ? s_vFolders[i].m_aName : s_vConfigs[i - s_vFolders.size()].m_aName;
+		if(s_SelectedIsFolder == IsFolder && str_comp(pName, s_aSelected) == 0)
+			SelectedIndex = i;
+	}
+
+	static CListBox s_ConfigBox;
+	static std::vector<unsigned char> s_vItemIds;
+	static std::vector<CButtonContainer> s_vItemButtons;
+	s_vItemIds.resize(maximum(1, TotalItems));
+	s_vItemButtons.resize(maximum(1, TotalItems));
+
+	s_ConfigBox.DoStart(25.0f, TotalItems, 1, 2, SelectedIndex, &ListRect);
+	for(int i = 0; i < TotalItems; i++)
+	{
+		const bool IsFolder = i < (int)s_vFolders.size();
+		const char *pName = IsFolder ? s_vFolders[i].m_aName : s_vConfigs[i - s_vFolders.size()].m_aName;
+		const CListboxItem Item = s_ConfigBox.DoNextItem(&s_vItemIds[i], SelectedIndex == i);
+		if(!Item.m_Visible)
+			continue;
+
+		CUIRect ItemRect = Item.m_Rect;
+		if(IsFolder)
+			RenderFontIcon(ItemRect, FONT_ICON_FOLDER, 14.0f, TEXTALIGN_ML);
+		ItemRect.VSplitLeft(22.0f, nullptr, &ItemRect);
+		Ui()->DoLabel(&ItemRect, pName, 12.0f, TEXTALIGN_ML);
+	}
+	const int NewSelected = s_ConfigBox.DoEnd();
+	if(NewSelected != SelectedIndex && NewSelected >= 0 && NewSelected < TotalItems)
+	{
+		if(NewSelected < (int)s_vFolders.size())
+		{
+			str_copy(s_aFolder, s_vFolders[NewSelected].m_aName, sizeof(s_aFolder));
+			s_aSelected[0] = '\0';
+			s_aMessage[0] = '\0';
+			s_NeedRefresh = true;
+		}
+		else
+		{
+			str_copy(s_aSelected, s_vConfigs[NewSelected - s_vFolders.size()].m_aName, sizeof(s_aSelected));
+			s_SelectedIsFolder = false;
+			str_copy(s_aSaveName, s_aSelected, sizeof(s_aSaveName));
+		}
+	}
+
+	// Folder navigation
+	Left.HSplitTop(MarginSmall, nullptr, &Left);
+	Left.HSplitTop(LineSize, &Row, &Left);
+	{
+		CUIRect UpButton, RootButton;
+		Row.VSplitLeft(90.0f, &UpButton, &Row);
+		Row.VSplitLeft(MarginSmall, nullptr, &Row);
+		Row.VSplitLeft(90.0f, &RootButton, &Row);
+
+		static CButtonContainer s_UpButton, s_RootButton;
+		if(DoButton_Menu(&s_UpButton, FeXLocalize("Up"), 0, &UpButton) && s_aFolder[0])
+		{
+			s_aFolder[0] = '\0';
+			s_aSelected[0] = '\0';
+			s_NeedRefresh = true;
+		}
+		if(DoButton_Menu(&s_RootButton, FeXLocalize("Root"), 0, &RootButton))
+		{
+			s_aFolder[0] = '\0';
+			s_aSelected[0] = '\0';
+			s_NeedRefresh = true;
+		}
+	}
+
+	Left.HSplitTop(MarginSmall, nullptr, &Left);
+	Left.HSplitTop(LineSize, &Row, &Left);
+	{
+		static CLineInput s_FolderInput;
+		s_FolderInput.SetBuffer(s_aFolderName, sizeof(s_aFolderName));
+		s_FolderInput.SetEmptyText(FeXLocalize("New folder name"));
+		Row.VSplitRight(90.0f, &InputRect, &Button);
+		Ui()->DoEditBox(&s_FolderInput, &InputRect, 12.0f);
+
+		static CButtonContainer s_NewFolderButton;
+		if(DoButton_Menu(&s_NewFolderButton, FeXLocalize("New folder"), 0, &Button))
+		{
+			char aErr[128];
+			if(Library.CreateFolder(Domain, s_aFolder, s_aFolderName, aErr, sizeof(aErr)))
+			{
+				str_format(s_aMessage, sizeof(s_aMessage), "%s: %s", FeXLocalize("Created folder"), s_aFolderName);
+				s_aFolderName[0] = '\0';
+				s_NeedRefresh = true;
+			}
+			else
+				str_copy(s_aMessage, aErr, sizeof(s_aMessage));
+		}
+	}
+
+	// ***** Actions on the selected config / folder ***** //
+	Right.HSplitTop(HeadlineHeight, &Label, &Right);
+	Ui()->DoLabel(&Label, FeXLocalize("Config actions"), FontSize, TEXTALIGN_ML);
+
+	Right.HSplitTop(LineSize, &Row, &Right);
+	{
+		static CLineInput s_NameInput;
+		s_NameInput.SetBuffer(s_aSaveName, sizeof(s_aSaveName));
+		s_NameInput.SetEmptyText(FeXLocalize("Config name"));
+		Row.VSplitLeft(100.0f, &Label, &InputRect);
+		Ui()->DoLabel(&Label, FeXLocalize("Name"), FontSize, TEXTALIGN_ML);
+		Ui()->DoEditBox(&s_NameInput, &InputRect, 12.0f);
+	}
+
+	Right.HSplitTop(MarginSmall, nullptr, &Right);
+	Right.HSplitTop(LineSize, &Row, &Right);
+	{
+		CUIRect SaveButton, LoadButton;
+		Row.VSplitLeft(Row.w / 2.0f - MarginSmall / 2.0f, &SaveButton, &Row);
+		Row.VSplitLeft(MarginSmall, nullptr, &Row);
+		LoadButton = Row;
+
+		static CButtonContainer s_SaveButton, s_LoadButton;
+		if(DoButton_Menu(&s_SaveButton, FeXLocalize("Save current"), 0, &SaveButton))
+		{
+			char aErr[128];
+			if(Library.Save(Domain, s_aFolder, s_aSaveName, aErr, sizeof(aErr)))
+			{
+				str_format(s_aMessage, sizeof(s_aMessage), "%s: %s", FeXLocalize("Saved"), s_aSaveName);
+				str_copy(s_aSelected, s_aSaveName, sizeof(s_aSelected));
+				s_SelectedIsFolder = false;
+				s_NeedRefresh = true;
+			}
+			else
+				str_copy(s_aMessage, aErr, sizeof(s_aMessage));
+		}
+
+		const bool CanLoad = s_aSelected[0] && !s_SelectedIsFolder;
+		if(DoButton_Menu(&s_LoadButton, FeXLocalize("Load selected"), CanLoad ? 0 : 1, &LoadButton) && CanLoad)
+		{
+			char aErr[128];
+			if(Library.Load(Domain, s_aFolder, s_aSelected, aErr, sizeof(aErr)))
+			{
+				str_format(aBuf, sizeof(aBuf), FeXLocalize("Loaded '%s'. Restart the client so the config takes full effect."), s_aSelected);
+				str_copy(s_aMessage, aBuf, sizeof(s_aMessage));
+			}
+			else
+				str_copy(s_aMessage, aErr, sizeof(s_aMessage));
+		}
+	}
+
+	Right.HSplitTop(MarginSmall, nullptr, &Right);
+	Right.HSplitTop(LineSize, &Row, &Right);
+	{
+		CUIRect RenameButton, DeleteButton;
+		Row.VSplitLeft(Row.w / 2.0f - MarginSmall / 2.0f, &RenameButton, &Row);
+		Row.VSplitLeft(MarginSmall, nullptr, &Row);
+		DeleteButton = Row;
+
+		static CButtonContainer s_RenameButton, s_DeleteButton;
+		if(DoButton_Menu(&s_RenameButton, FeXLocalize("Rename selected"), 0, &RenameButton))
+		{
+			char aErr[128];
+			if(!s_aSelected[0])
+				str_copy(s_aMessage, FeXLocalize("Nothing is selected."), sizeof(s_aMessage));
+			else if(Library.Rename(Domain, s_aFolder, s_aSelected, s_aSaveName, s_SelectedIsFolder, aErr, sizeof(aErr)))
+			{
+				str_format(s_aMessage, sizeof(s_aMessage), "%s: %s", FeXLocalize("Renamed to"), s_aSaveName);
+				str_copy(s_aSelected, s_aSaveName, sizeof(s_aSelected));
+				s_NeedRefresh = true;
+			}
+			else
+				str_copy(s_aMessage, aErr, sizeof(s_aMessage));
+		}
+		if(DoButton_Menu(&s_DeleteButton, FeXLocalize("Delete selected"), 0, &DeleteButton))
+		{
+			char aErr[128];
+			if(!s_aSelected[0])
+				str_copy(s_aMessage, FeXLocalize("Nothing is selected."), sizeof(s_aMessage));
+			else if(Library.Delete(Domain, s_aFolder, s_aSelected, s_SelectedIsFolder, aErr, sizeof(aErr)))
+			{
+				str_format(s_aMessage, sizeof(s_aMessage), "%s: %s", FeXLocalize("Deleted"), s_aSelected);
+				s_aSelected[0] = '\0';
+				s_NeedRefresh = true;
+			}
+			else
+				str_copy(s_aMessage, aErr, sizeof(s_aMessage));
+		}
+	}
+
+	Right.HSplitTop(Margin, nullptr, &Right);
+	Right.HSplitTop(LineSize * 2.0f, &Row, &Right);
+	if(s_aMessage[0])
+		Ui()->DoLabel(&Row, s_aMessage, 11.0f, TEXTALIGN_ML);
+
+	Right.HSplitTop(MarginSmall, nullptr, &Right);
+	Right.HSplitTop(LineSize * 3.0f, &Row, &Right);
+	str_format(aBuf, sizeof(aBuf), "%s: %s", FeXLocalize("Source file"), Library.DomainSource(Domain));
+	Ui()->DoLabel(&Row, aBuf, 11.0f, TEXTALIGN_ML);
 }

@@ -10,18 +10,9 @@
 #include <game/client/component.h>
 #include <game/generated/protocol.h>
 
-// Fast input schemes. Legacy repredicts as soon as an input changes; the
-// TClient and FeX schemes additionally predict the local tee ahead by a
-// configurable number of milliseconds.
-enum EFastInputScheme
-{
-	FASTINPUT_OFF = 0,
-	FASTINPUT_LEGACY,  // repredict on change, no prediction lead
-	FASTINPUT_TCLIENT, // prediction lead only (TClient style)
-	FASTINPUT_FEX,     // lead + repredict + aim + hook refresh
-	NUM_FASTINPUT_SCHEMES,
-};
-
+// Fast input: as soon as one of these fields changes the client repredicts
+// immediately instead of waiting for the next server tick, and the prediction
+// is led ahead by fx_fast_input_amount milliseconds.
 enum
 {
 	FASTINPUT_FIELD_DIRECTION = 1 << 0,
@@ -31,11 +22,6 @@ enum
 	FASTINPUT_FIELD_WEAPON = 1 << 4,
 	FASTINPUT_FIELD_AIM = 1 << 5,
 };
-
-const char *FastInputSchemeName(int Scheme);
-const char *FastInputSchemeDescription(int Scheme);
-// Which input fields cause an immediate reprediction in this scheme.
-int FastInputRepredictMask(int Scheme);
 
 class CControls : public CComponent
 {
