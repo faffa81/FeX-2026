@@ -97,6 +97,9 @@ MACRO_CONFIG_INT(ClRenderGhostAsCircle, fx_render_ghost_as_circle, 0, 0, 1, CFGF
 
 // Fast input schemes: 0=off, 1=legacy (repredict only), 2=TClient (prediction
 // lead), 3=FeX (lead + repredict + aim + hook refresh)
+// Interface language, one json file per language in data/fex/languages
+MACRO_CONFIG_STR(ClFeXLanguage, fx_language, 16, "english", CFGFLAG_CLIENT | CFGFLAG_SAVE, "FeX interface language (files in data/fex/languages)")
+
 MACRO_CONFIG_INT(ClFastInput, fx_fast_input, 0, 0, 3, CFGFLAG_CLIENT | CFGFLAG_SAVE, "Fast input scheme: 0=off, 1=legacy, 2=TClient, 3=FeX")
 MACRO_CONFIG_INT(ClFastInputAmount, fx_fast_input_amount, 20, 0, 40, CFGFLAG_CLIENT | CFGFLAG_SAVE, "Milliseconds of prediction lead fast input applies (rounded to the server tick)")
 MACRO_CONFIG_INT(ClFastInputHook, fx_fast_input_hook, 1, 0, 1, CFGFLAG_CLIENT | CFGFLAG_SAVE, "Repredict while hooking so the hook follows the crosshair")

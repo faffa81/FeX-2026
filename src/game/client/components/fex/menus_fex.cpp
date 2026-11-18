@@ -17,6 +17,7 @@
 
 #include <game/client/animstate.h>
 #include <game/client/components/chat.h>
+#include <game/client/components/fex/fexlanguage.h>
 #include <game/client/components/menu_background.h>
 #include <game/client/components/sounds.h>
 #include <game/client/components/fex/fexbindwheel.h>
@@ -113,12 +114,12 @@ void CMenus::RenderSettingsFeX(CUIRect MainView)
     const float TabWidth = TabBar.w / TabCount;
     static CButtonContainer s_aPageTabs[NUMBER_OF_FEX_TABS] = {};
     const char *apTabNames[NUMBER_OF_FEX_TABS] = {
-        Localize("FeX Settings"),
-        Localize("FeX Visual Settings"),
-        Localize("FeX Warlist"),
-        Localize("FeX Bindwheel"),
-		Localize("FeX Quickactions"),
-        Localize("FeX Statusbar"),
+        FeXLocalize("FeX Settings"),
+        FeXLocalize("FeX Visual Settings"),
+        FeXLocalize("FeX Warlist"),
+        FeXLocalize("FeX Bindwheel"),
+		FeXLocalize("FeX Quickactions"),
+        FeXLocalize("FeX Statusbar"),
     };
 
     for(int Tab = 0; Tab < NUMBER_OF_FEX_TABS; ++Tab)
@@ -245,7 +246,33 @@ void CMenus::RenderFex(CUIRect MainView, int CurPage)
 		ScrollParams.m_ScrollUnit = 120.0f;
 		s_ScrollRegion.Begin(&MainView, &ScrollOffset, &ScrollParams);
 		MainView.y += ScrollOffset.y;
-		
+
+		// ***** Language ***** //
+		{
+			CUIRect LanguageBox, LanguageLabel;
+			MainView.HSplitTop(LineSize + 5.0f, &LanguageBox, &MainView);
+			MainView.HSplitTop(MarginSmall, nullptr, &MainView);
+			LanguageBox.VSplitLeft(150.0f, &LanguageLabel, &LanguageBox);
+
+			static CUi::SDropDownState s_LanguageState;
+			static std::vector<const char *> s_vpLanguageNames;
+			s_vpLanguageNames.clear();
+			for(int i = 0; i < g_FeXLanguage.NumLanguages(); i++)
+				s_vpLanguageNames.push_back(g_FeXLanguage.NameAt(i));
+			if(s_vpLanguageNames.empty())
+				s_vpLanguageNames.push_back("English");
+
+			s_LanguageState.m_SelectionPopupContext.m_pScrollRegion = &s_ScrollRegion;
+			Ui()->DoLabel(&LanguageLabel, FeXLocalize("Language"), 14.0f, TEXTALIGN_ML);
+			const int CurrentLanguage = g_FeXLanguage.IndexOfCode(g_Config.m_ClFeXLanguage);
+			const int NewLanguage = Ui()->DoDropDown(&LanguageBox, CurrentLanguage, s_vpLanguageNames.data(), s_vpLanguageNames.size(), s_LanguageState);
+			if(NewLanguage != CurrentLanguage || !g_Config.m_ClFeXLanguage[0])
+			{
+				str_copy(g_Config.m_ClFeXLanguage, g_FeXLanguage.CodeAt(NewLanguage), sizeof(g_Config.m_ClFeXLanguage));
+				g_FeXLanguage.Reload();
+			}
+		}
+
 		// Split the view into two sections with proper spacing
 		MainView.VSplitMid(&FreezeKillSettings, &Settings1v1);
 
@@ -265,35 +292,35 @@ void CMenus::RenderFex(CUIRect MainView, int CurPage)
 					
 					// Freeze Kill heading
 					FreezeKillSettings.HSplitTop(HeaderHeight, &Button, &FreezeKillSettings);
-					Ui()->DoLabel(&Button, Localize("Freeze Kill"), HeadlineFontSize, TEXTALIGN_ML);
+					Ui()->DoLabel(&Button, FeXLocalize("Freeze Kill"), HeadlineFontSize, TEXTALIGN_ML);
 
-					DoButton_CheckBoxAutoVMarginAndSet(&g_Config.m_ClFreezeKill, Localize("Kill on Freeze"), &g_Config.m_ClFreezeKill, &FreezeKillSettings, LineSize);
+					DoButton_CheckBoxAutoVMarginAndSet(&g_Config.m_ClFreezeKill, FeXLocalize("Kill on Freeze"), &g_Config.m_ClFreezeKill, &FreezeKillSettings, LineSize);
 
 					if(g_Config.m_ClFreezeKill)
 					{
 						Offset = Offset + 120.0f;
-						DoButton_CheckBoxAutoVMarginAndSet(&g_Config.m_ClFreezeKillMultOnly, Localize("Only Enable on Multeasymap"), &g_Config.m_ClFreezeKillMultOnly, &FreezeKillSettings, LineSize);
+						DoButton_CheckBoxAutoVMarginAndSet(&g_Config.m_ClFreezeKillMultOnly, FeXLocalize("Only Enable on Multeasymap"), &g_Config.m_ClFreezeKillMultOnly, &FreezeKillSettings, LineSize);
 
-						DoButton_CheckBoxAutoVMarginAndSet(&g_Config.m_ClFreezeKillIgnoreKillProt, Localize("Ignore Kill Protection"), &g_Config.m_ClFreezeKillIgnoreKillProt, &FreezeKillSettings, LineSize);
+						DoButton_CheckBoxAutoVMarginAndSet(&g_Config.m_ClFreezeKillIgnoreKillProt, FeXLocalize("Ignore Kill Protection"), &g_Config.m_ClFreezeKillIgnoreKillProt, &FreezeKillSettings, LineSize);
 
-						DoButton_CheckBoxAutoVMarginAndSet(&g_Config.m_ClFreezeDontKillMoving, Localize("Don't Kill if Moving"), &g_Config.m_ClFreezeDontKillMoving, &FreezeKillSettings, LineSize);
+						DoButton_CheckBoxAutoVMarginAndSet(&g_Config.m_ClFreezeDontKillMoving, FeXLocalize("Don't Kill if Moving"), &g_Config.m_ClFreezeDontKillMoving, &FreezeKillSettings, LineSize);
 
-						DoButton_CheckBoxAutoVMarginAndSet(&g_Config.m_ClFreezeKillOnlyFullFrozen, Localize("Only Kill if Fully Frozen"), &g_Config.m_ClFreezeKillOnlyFullFrozen, &FreezeKillSettings, LineSize);
+						DoButton_CheckBoxAutoVMarginAndSet(&g_Config.m_ClFreezeKillOnlyFullFrozen, FeXLocalize("Only Kill if Fully Frozen"), &g_Config.m_ClFreezeKillOnlyFullFrozen, &FreezeKillSettings, LineSize);
 
-						DoButton_CheckBoxAutoVMarginAndSet(&g_Config.m_ClFreezeKillWaitMs, Localize("Wait Until Kill"), &g_Config.m_ClFreezeKillWaitMs, &FreezeKillSettings, LineSize);
+						DoButton_CheckBoxAutoVMarginAndSet(&g_Config.m_ClFreezeKillWaitMs, FeXLocalize("Wait Until Kill"), &g_Config.m_ClFreezeKillWaitMs, &FreezeKillSettings, LineSize);
 
-						DoButton_CheckBoxAutoVMarginAndSet(&g_Config.m_ClFreezeKillColor, Localize("Color for Freeze Kill bar"), &g_Config.m_ClFreezeKillColor, &FreezeKillSettings, LineSize);
+						DoButton_CheckBoxAutoVMarginAndSet(&g_Config.m_ClFreezeKillColor, FeXLocalize("Color for Freeze Kill bar"), &g_Config.m_ClFreezeKillColor, &FreezeKillSettings, LineSize);
 						if(g_Config.m_ClFreezeKillWaitMs)
 						{
 							Offset = Offset + 40.0f;
 							FreezeKillSettings.HSplitTop(2 * LineSize, &Button, &FreezeKillSettings);
-							Ui()->DoScrollbarOption(&g_Config.m_ClFreezeKillMs, &g_Config.m_ClFreezeKillMs, &Button, Localize("Milliseconds to Wait For"), 1, 5000, &CUi::ms_LinearScrollbarScale, CUi::SCROLLBAR_OPTION_MULTILINE, "ms");
+							Ui()->DoScrollbarOption(&g_Config.m_ClFreezeKillMs, &g_Config.m_ClFreezeKillMs, &Button, FeXLocalize("Milliseconds to Wait For"), 1, 5000, &CUi::ms_LinearScrollbarScale, CUi::SCROLLBAR_OPTION_MULTILINE, "ms");
 						}
 						if(g_Config.m_ClFreezeKillColor)
 						{
 							Offset = Offset + 25.0f;
 							static CButtonContainer s_freezeColor;
-							DoLine_ColorPicker(&s_freezeColor, ColorPickerLineSize, ColorPickerLabelSize, ColorPickerLineSpacing, &FreezeKillSettings, Localize("freeze kill bar color"), &g_Config.m_ClFreezeKillColorCol, ColorRGBA(1.0f, 0.0f, 1.0f), false);	
+							DoLine_ColorPicker(&s_freezeColor, ColorPickerLineSize, ColorPickerLabelSize, ColorPickerLineSpacing, &FreezeKillSettings, FeXLocalize("freeze kill bar color"), &g_Config.m_ClFreezeKillColorCol, ColorRGBA(1.0f, 0.0f, 1.0f), false);	
 						}
 
 					}
@@ -314,14 +341,14 @@ void CMenus::RenderFex(CUIRect MainView, int CurPage)
 					
 					// Auto dummy connect heading
 					AutomationSettings.HSplitTop(HeaderHeight, &Button, &AutomationSettings);
-					Ui()->DoLabel(&Button, Localize("Auto dummy connect"), HeadlineFontSize, TEXTALIGN_ML);
+					Ui()->DoLabel(&Button, FeXLocalize("Auto dummy connect"), HeadlineFontSize, TEXTALIGN_ML);
 					
 					// Auto Join Dummy
 
-					DoButton_CheckBoxAutoVMarginAndSet(&g_Config.m_ClAutoJoinDummy, Localize("Auto dummy connect toggle (enables auto dummy join)"), &g_Config.m_ClAutoJoinDummy, &AutomationSettings, LineSize);
+					DoButton_CheckBoxAutoVMarginAndSet(&g_Config.m_ClAutoJoinDummy, FeXLocalize("Auto dummy connect toggle (enables auto dummy join)"), &g_Config.m_ClAutoJoinDummy, &AutomationSettings, LineSize);
 					
 					// Auto dummy switch
-					DoButton_CheckBoxAutoVMarginAndSet(&g_Config.m_ClAutoJoinDummySwitch, Localize("Auto dummy switch toggle (switches back to player)"), &g_Config.m_ClAutoJoinDummySwitch, &AutomationSettings, LineSize);
+					DoButton_CheckBoxAutoVMarginAndSet(&g_Config.m_ClAutoJoinDummySwitch, FeXLocalize("Auto dummy switch toggle (switches back to player)"), &g_Config.m_ClAutoJoinDummySwitch, &AutomationSettings, LineSize);
 					
 					// Auto dummy connect delay
 					AutomationSettings.HSplitTop(5.0f, nullptr, &AutomationSettings); // Add spacing
@@ -331,7 +358,7 @@ void CMenus::RenderFex(CUIRect MainView, int CurPage)
 
 					// Auto team connect heading
 					AutomationSettings.HSplitTop(25.0f, &Button, &AutomationSettings);
-					Ui()->DoLabel(&Button, Localize("Auto Team join"), HeadlineFontSize, TEXTALIGN_ML);
+					Ui()->DoLabel(&Button, FeXLocalize("Auto Team join"), HeadlineFontSize, TEXTALIGN_ML);
 					
 					// Auto Join team
 					AutomationSettings.HSplitTop(5.0f, nullptr, &AutomationSettings); // Add spacing
@@ -341,7 +368,7 @@ void CMenus::RenderFex(CUIRect MainView, int CurPage)
 					
 					// Auto team lock
 
-					DoButton_CheckBoxAutoVMarginAndSet(&g_Config.m_ClAutoJoinTeamLock, Localize("Auto Team lock"), &g_Config.m_ClAutoJoinTeamLock, &AutomationSettings, LineSize);
+					DoButton_CheckBoxAutoVMarginAndSet(&g_Config.m_ClAutoJoinTeamLock, FeXLocalize("Auto Team lock"), &g_Config.m_ClAutoJoinTeamLock, &AutomationSettings, LineSize);
 					
 					// Auto team join delay
 					AutomationSettings.HSplitTop(5.0f, nullptr, &AutomationSettings); // Add spacing
@@ -352,11 +379,11 @@ void CMenus::RenderFex(CUIRect MainView, int CurPage)
 
 					AutomationSettings.HSplitTop(2.5f, &Button, &AutomationSettings);
 
-					DoButton_CheckBoxAutoVMarginAndSet(&g_Config.m_ClAutoReplyTabbedOut, Localize("Auto Reply Tabbed out"), &g_Config.m_ClAutoReplyTabbedOut, &AutomationSettings, LineSize);
+					DoButton_CheckBoxAutoVMarginAndSet(&g_Config.m_ClAutoReplyTabbedOut, FeXLocalize("Auto Reply Tabbed out"), &g_Config.m_ClAutoReplyTabbedOut, &AutomationSettings, LineSize);
 
-					DoButton_CheckBoxAutoVMarginAndSet(&g_Config.m_ClAutoReplyPinged, Localize("Auto Reply Pinged"), &g_Config.m_ClAutoReplyPinged, &AutomationSettings, LineSize);
+					DoButton_CheckBoxAutoVMarginAndSet(&g_Config.m_ClAutoReplyPinged, FeXLocalize("Auto Reply Pinged"), &g_Config.m_ClAutoReplyPinged, &AutomationSettings, LineSize);
 
-					DoButton_CheckBoxAutoVMarginAndSet(&g_Config.m_ClAutoReplyMuted, Localize("Auto Reply muted"), &g_Config.m_ClAutoReplyMuted, &AutomationSettings, LineSize);
+					DoButton_CheckBoxAutoVMarginAndSet(&g_Config.m_ClAutoReplyMuted, FeXLocalize("Auto Reply muted"), &g_Config.m_ClAutoReplyMuted, &AutomationSettings, LineSize);
 
 
 					if(g_Config.m_ClAutoReplyPinged)
@@ -403,7 +430,7 @@ void CMenus::RenderFex(CUIRect MainView, int CurPage)
 
 					// ***** Input ***** //
 					FastInputSettings.HSplitTop(HeaderHeight, &Label, &FastInputSettings);
-					Ui()->DoLabel(&Label, Localize("Input"), HeadlineFontSize, TEXTALIGN_ML);
+					Ui()->DoLabel(&Label, FeXLocalize("Input"), HeadlineFontSize, TEXTALIGN_ML);
 
 					static CUi::SDropDownState s_FastInputSchemeState;
 					static std::vector<const char *> s_vpFastInputSchemeNames;
@@ -425,19 +452,19 @@ void CMenus::RenderFex(CUIRect MainView, int CurPage)
 					{
 						FastInputOffset += LineSize;
 						FastInputSettings.HSplitTop(LineSize, &Button, &FastInputSettings);
-						DoSliderWithScaledValue(&g_Config.m_ClFastInputAmount, &g_Config.m_ClFastInputAmount, &Button, Localize("Lead"), 0, 40, 1, &CUi::ms_LinearScrollbarScale, CUi::SCROLLBAR_OPTION_NOCLAMPVALUE, "ms");
+						DoSliderWithScaledValue(&g_Config.m_ClFastInputAmount, &g_Config.m_ClFastInputAmount, &Button, FeXLocalize("Lead"), 0, 40, 1, &CUi::ms_LinearScrollbarScale, CUi::SCROLLBAR_OPTION_NOCLAMPVALUE, "ms");
 
 						FastInputOffset += LineSize;
-						DoButton_CheckBoxAutoVMarginAndSet(&g_Config.m_ClFastInputOthers, Localize("Fast input others"), &g_Config.m_ClFastInputOthers, &FastInputSettings, LineSize);
+						DoButton_CheckBoxAutoVMarginAndSet(&g_Config.m_ClFastInputOthers, FeXLocalize("Fast input others"), &g_Config.m_ClFastInputOthers, &FastInputSettings, LineSize);
 
 						FastInputOffset += LineSize;
-						DoButton_CheckBoxAutoVMarginAndSet(&g_Config.m_ClFastInputHook, Localize("Hook aim refresh"), &g_Config.m_ClFastInputHook, &FastInputSettings, LineSize);
+						DoButton_CheckBoxAutoVMarginAndSet(&g_Config.m_ClFastInputHook, FeXLocalize("Hook aim refresh"), &g_Config.m_ClFastInputHook, &FastInputSettings, LineSize);
 
 						if(g_Config.m_ClFastInput == FASTINPUT_FEX)
 						{
 							FastInputOffset += LineSize;
 							FastInputSettings.HSplitTop(LineSize, &Button, &FastInputSettings);
-							Ui()->DoScrollbarOption(&g_Config.m_ClFastInputAim, &g_Config.m_ClFastInputAim, &Button, Localize("Aim sensitivity"), 0, 45, &CUi::ms_LinearScrollbarScale, 0, " deg");
+							Ui()->DoScrollbarOption(&g_Config.m_ClFastInputAim, &g_Config.m_ClFastInputAim, &Button, FeXLocalize("Aim sensitivity"), 0, 45, &CUi::ms_LinearScrollbarScale, 0, " deg");
 						}
 					}
 
@@ -446,39 +473,39 @@ void CMenus::RenderFex(CUIRect MainView, int CurPage)
 
 					// ***** Anti Latency Tools ***** //
 					FastInputSettings.HSplitTop(HeaderHeight, &Label, &FastInputSettings);
-					Ui()->DoLabel(&Label, Localize("Anti Latency Tools"), HeadlineFontSize, TEXTALIGN_ML);
+					Ui()->DoLabel(&Label, FeXLocalize("Anti Latency Tools"), HeadlineFontSize, TEXTALIGN_ML);
 					FastInputSettings.HSplitTop(MarginSmall, nullptr, &FastInputSettings);
 
 					FastInputSettings.HSplitTop(LineSize, &Button, &FastInputSettings);
-					Ui()->DoScrollbarOption(&g_Config.m_ClPredictionMargin, &g_Config.m_ClPredictionMargin, &Button, Localize("Prediction Margin"), 10, 75, &CUi::ms_LinearScrollbarScale, CUi::SCROLLBAR_OPTION_NOCLAMPVALUE, "ms");
-					DoButton_CheckBoxAutoVMarginAndSet(&g_Config.m_ClRemoveAnti, Localize("Remove prediction & antiping in freeze"), &g_Config.m_ClRemoveAnti, &FastInputSettings, LineSize);
+					Ui()->DoScrollbarOption(&g_Config.m_ClPredictionMargin, &g_Config.m_ClPredictionMargin, &Button, FeXLocalize("Prediction Margin"), 10, 75, &CUi::ms_LinearScrollbarScale, CUi::SCROLLBAR_OPTION_NOCLAMPVALUE, "ms");
+					DoButton_CheckBoxAutoVMarginAndSet(&g_Config.m_ClRemoveAnti, FeXLocalize("Remove prediction & antiping in freeze"), &g_Config.m_ClRemoveAnti, &FastInputSettings, LineSize);
 					if(g_Config.m_ClRemoveAnti)
 					{
 					if(g_Config.m_ClUnfreezeLagDelayTicks < g_Config.m_ClUnfreezeLagTicks)
 					g_Config.m_ClUnfreezeLagDelayTicks = g_Config.m_ClUnfreezeLagTicks;
 					FastInputSettings.HSplitTop(LineSize, &Button, &FastInputSettings);
-					DoSliderWithScaledValue(&g_Config.m_ClUnfreezeLagTicks, &g_Config.m_ClUnfreezeLagTicks, &Button, Localize("Amount"), 100, 300, 20, &CUi::ms_LinearScrollbarScale, CUi::SCROLLBAR_OPTION_NOCLAMPVALUE, "ms");
+					DoSliderWithScaledValue(&g_Config.m_ClUnfreezeLagTicks, &g_Config.m_ClUnfreezeLagTicks, &Button, FeXLocalize("Amount"), 100, 300, 20, &CUi::ms_LinearScrollbarScale, CUi::SCROLLBAR_OPTION_NOCLAMPVALUE, "ms");
 					FastInputSettings.HSplitTop(LineSize, &Button, &FastInputSettings);
-					DoSliderWithScaledValue(&g_Config.m_ClUnfreezeLagDelayTicks, &g_Config.m_ClUnfreezeLagDelayTicks, &Button, Localize("Delay"), 100, 3000, 20, &CUi::ms_LinearScrollbarScale, CUi::SCROLLBAR_OPTION_NOCLAMPVALUE, "ms");
+					DoSliderWithScaledValue(&g_Config.m_ClUnfreezeLagDelayTicks, &g_Config.m_ClUnfreezeLagDelayTicks, &Button, FeXLocalize("Delay"), 100, 3000, 20, &CUi::ms_LinearScrollbarScale, CUi::SCROLLBAR_OPTION_NOCLAMPVALUE, "ms");
 					}
 					else
 					FastInputSettings.HSplitTop(LineSize * 2, nullptr, &FastInputSettings);
-					DoButton_CheckBoxAutoVMarginAndSet(&g_Config.m_ClUnpredOthersInFreeze, Localize("Dont predict other players if you are frozen"), &g_Config.m_ClUnpredOthersInFreeze, &FastInputSettings, LineSize);
-					DoButton_CheckBoxAutoVMarginAndSet(&g_Config.m_ClPredMarginInFreeze, Localize("Adjust your prediction margin while frozen"), &g_Config.m_ClPredMarginInFreeze, &FastInputSettings, LineSize);
+					DoButton_CheckBoxAutoVMarginAndSet(&g_Config.m_ClUnpredOthersInFreeze, FeXLocalize("Dont predict other players if you are frozen"), &g_Config.m_ClUnpredOthersInFreeze, &FastInputSettings, LineSize);
+					DoButton_CheckBoxAutoVMarginAndSet(&g_Config.m_ClPredMarginInFreeze, FeXLocalize("Adjust your prediction margin while frozen"), &g_Config.m_ClPredMarginInFreeze, &FastInputSettings, LineSize);
 					FastInputSettings.HSplitTop(LineSize, &Button, &FastInputSettings);
 					if(g_Config.m_ClPredMarginInFreeze)
-					Ui()->DoScrollbarOption(&g_Config.m_ClPredMarginInFreezeAmount, &g_Config.m_ClPredMarginInFreezeAmount, &Button, Localize("Frozen Margin"), 0, 100, &CUi::ms_LinearScrollbarScale, 0, "ms");
+					Ui()->DoScrollbarOption(&g_Config.m_ClPredMarginInFreezeAmount, &g_Config.m_ClPredMarginInFreezeAmount, &Button, FeXLocalize("Frozen Margin"), 0, 100, &CUi::ms_LinearScrollbarScale, 0, "ms");
 
 					// ***** Improved Anti Ping ***** //
 					FastInputSettings.HSplitTop(HeaderHeight, &Label, &FastInputSettings);
-					Ui()->DoLabel(&Label, Localize("Anti Ping Smoothing"), HeadlineFontSize, TEXTALIGN_ML);
+					Ui()->DoLabel(&Label, FeXLocalize("Anti Ping Smoothing"), HeadlineFontSize, TEXTALIGN_ML);
 					FastInputSettings.HSplitTop(MarginSmall, nullptr, &FastInputSettings);
 
-					DoButton_CheckBoxAutoVMarginAndSet(&g_Config.m_ClAntiPingImproved, Localize("Use new smoothing algorithm"), &g_Config.m_ClAntiPingImproved, &FastInputSettings, LineSize);
-					DoButton_CheckBoxAutoVMarginAndSet(&g_Config.m_ClAntiPingStableDirection, Localize("Optimistic prediction along stable direction"), &g_Config.m_ClAntiPingStableDirection, &FastInputSettings, LineSize);
-					DoButton_CheckBoxAutoVMarginAndSet(&g_Config.m_ClAntiPingNegativeBuffer, Localize("Negative stability buffer (for Gores)"), &g_Config.m_ClAntiPingNegativeBuffer, &FastInputSettings, LineSize);
+					DoButton_CheckBoxAutoVMarginAndSet(&g_Config.m_ClAntiPingImproved, FeXLocalize("Use new smoothing algorithm"), &g_Config.m_ClAntiPingImproved, &FastInputSettings, LineSize);
+					DoButton_CheckBoxAutoVMarginAndSet(&g_Config.m_ClAntiPingStableDirection, FeXLocalize("Optimistic prediction along stable direction"), &g_Config.m_ClAntiPingStableDirection, &FastInputSettings, LineSize);
+					DoButton_CheckBoxAutoVMarginAndSet(&g_Config.m_ClAntiPingNegativeBuffer, FeXLocalize("Negative stability buffer (for Gores)"), &g_Config.m_ClAntiPingNegativeBuffer, &FastInputSettings, LineSize);
 					FastInputSettings.HSplitTop(LineSize, &Button, &FastInputSettings);
-					Ui()->DoScrollbarOption(&g_Config.m_ClAntiPingUncertaintyScale, &g_Config.m_ClAntiPingUncertaintyScale, &Button, Localize("Uncertainty duration"), 50, 400, &CUi::ms_LinearScrollbarScale, CUi::SCROLLBAR_OPTION_NOCLAMPVALUE, "%");
+					Ui()->DoScrollbarOption(&g_Config.m_ClAntiPingUncertaintyScale, &g_Config.m_ClAntiPingUncertaintyScale, &Button, FeXLocalize("Uncertainty duration"), 50, 400, &CUi::ms_LinearScrollbarScale, CUi::SCROLLBAR_OPTION_NOCLAMPVALUE, "%");
 				}
 			}
 
@@ -492,7 +519,7 @@ void CMenus::RenderFex(CUIRect MainView, int CurPage)
 					FrozenTeeHudSettings.VMargin(Margin, &FrozenTeeHudSettings);
 
 					FrozenTeeHudSettings.HSplitTop(HeaderHeight, &Button, &FrozenTeeHudSettings);
-					Ui()->DoLabel(&Button, Localize("Frozen Tee Hud"), FontSize, TEXTALIGN_MC);
+					Ui()->DoLabel(&Button, FeXLocalize("Frozen Tee Hud"), FontSize, TEXTALIGN_MC);
 					{
 						// ***** FROZEN TEE HUD ***** //
 
@@ -521,14 +548,14 @@ void CMenus::RenderFex(CUIRect MainView, int CurPage)
 							CUIRect CheckBoxRect, CheckBoxRect2;
 							FrozenTeeHudSettings.HSplitTop(LineMargin, &CheckBoxRect, &FrozenTeeHudSettings);
 							CheckBoxRect.VSplitMid(&CheckBoxRect, &CheckBoxRect2);
-							if(DoButton_CheckBox(&g_Config.m_ClShowFrozenText, Localize("Tees Left Alive Text"), g_Config.m_ClShowFrozenText >= 1, &CheckBoxRect))
+							if(DoButton_CheckBox(&g_Config.m_ClShowFrozenText, FeXLocalize("Tees Left Alive Text"), g_Config.m_ClShowFrozenText >= 1, &CheckBoxRect))
 							{
 								g_Config.m_ClShowFrozenText = g_Config.m_ClShowFrozenText >= 1 ? 0 : 1;
 							}
 							if(g_Config.m_ClShowFrozenText)
 							{
 								static int s_CountFrozenText = 0;
-								if(DoButton_CheckBox(&s_CountFrozenText, Localize("Count Frozen Tees"), g_Config.m_ClShowFrozenText == 2, &CheckBoxRect2))
+								if(DoButton_CheckBox(&s_CountFrozenText, FeXLocalize("Count Frozen Tees"), g_Config.m_ClShowFrozenText == 2, &CheckBoxRect2))
 								{
 									g_Config.m_ClShowFrozenText = g_Config.m_ClShowFrozenText != 2 ? 2 : 1;
 								}
@@ -554,33 +581,33 @@ void CMenus::RenderFex(CUIRect MainView, int CurPage)
 					Settings1v1.VMargin(Margin, &Settings1v1);
 
 					Settings1v1.HSplitTop(HeaderHeight, &Label, &Settings1v1);
-					Ui()->DoLabel(&Label, Localize("1v1"), HeadlineFontSize, TEXTALIGN_ML);
+					Ui()->DoLabel(&Label, FeXLocalize("1v1"), HeadlineFontSize, TEXTALIGN_ML);
 
 					// Score Limit Slider
 					Settings1v1.HSplitTop(20.0f, &Button, &Settings1v1);
 					Ui()->DoScrollbarOption(&g_Config.m_Cl1v1ModeScoreLimit, &g_Config.m_Cl1v1ModeScoreLimit, 
 						&Button, "Score Limit", 1, 50, &CUi::ms_LogarithmicScrollbarScale);
 
-					DoButton_CheckBoxAutoVMarginAndSet(&g_Config.m_Cl1v1ModeShowHud, Localize("1v1 Mode hud"), &g_Config.m_Cl1v1ModeShowHud, &Settings1v1, LineSize);
+					DoButton_CheckBoxAutoVMarginAndSet(&g_Config.m_Cl1v1ModeShowHud, FeXLocalize("1v1 Mode hud"), &g_Config.m_Cl1v1ModeShowHud, &Settings1v1, LineSize);
 
-					DoButton_CheckBoxAutoVMarginAndSet(&g_Config.m_Cl1v1ModeEcho, Localize("1v1 Mode Echo message"), &g_Config.m_Cl1v1ModeEcho, &Settings1v1, LineSize);
+					DoButton_CheckBoxAutoVMarginAndSet(&g_Config.m_Cl1v1ModeEcho, FeXLocalize("1v1 Mode Echo message"), &g_Config.m_Cl1v1ModeEcho, &Settings1v1, LineSize);
 
-					DoButton_CheckBoxAutoVMarginAndSet(&g_Config.m_Cl1v1ModeKillLock, Localize("1v1 Mode kill lock"), &g_Config.m_Cl1v1ModeKillLock, &Settings1v1, LineSize);
+					DoButton_CheckBoxAutoVMarginAndSet(&g_Config.m_Cl1v1ModeKillLock, FeXLocalize("1v1 Mode kill lock"), &g_Config.m_Cl1v1ModeKillLock, &Settings1v1, LineSize);
 
-					DoButton_CheckBoxAutoVMarginAndSet(&g_Config.m_Cl1v1ModeHudColor, Localize("1v1 Mode hud color"), &g_Config.m_Cl1v1ModeHudColor, &Settings1v1, LineSize);
+					DoButton_CheckBoxAutoVMarginAndSet(&g_Config.m_Cl1v1ModeHudColor, FeXLocalize("1v1 Mode hud color"), &g_Config.m_Cl1v1ModeHudColor, &Settings1v1, LineSize);
 
-					DoButton_CheckBoxAutoVMarginAndSet(&g_Config.m_Cl1v1ModeCustom, Localize("1v1 Mode chat message"), &g_Config.m_Cl1v1ModeCustom, &Settings1v1, LineSize);
+					DoButton_CheckBoxAutoVMarginAndSet(&g_Config.m_Cl1v1ModeCustom, FeXLocalize("1v1 Mode chat message"), &g_Config.m_Cl1v1ModeCustom, &Settings1v1, LineSize);
 					if(g_Config.m_Cl1v1ModeHudColor)
 					{
 						Offset = Offset + 25.0f;
 						static CButtonContainer s_1v1Color;
-						DoLine_ColorPicker(&s_1v1Color, ColorPickerLineSize, ColorPickerLabelSize, ColorPickerLineSpacing, &Settings1v1, Localize("1v1 text color"), &g_Config.m_Cl1v1ModeTextColor, ColorRGBA(1.0f, 1.0f, 1.0f), false);
+						DoLine_ColorPicker(&s_1v1Color, ColorPickerLineSize, ColorPickerLabelSize, ColorPickerLineSpacing, &Settings1v1, FeXLocalize("1v1 text color"), &g_Config.m_Cl1v1ModeTextColor, ColorRGBA(1.0f, 1.0f, 1.0f), false);
 					}
 					if(g_Config.m_Cl1v1ModeCustom)
 					{
 						Offset = Offset + 80.0f;
 						Settings1v1.HSplitTop(35.0f, &Label, &Settings1v1);
-						Ui()->DoLabel(&Label, Localize("Custom 1v1 Message: %s = string, %d = score | example: %s %d | %d %s"), HeadlineFontSize, TEXTALIGN_ML);
+						Ui()->DoLabel(&Label, FeXLocalize("Custom 1v1 Message: %s = string, %d = score | example: %s %d | %d %s"), HeadlineFontSize, TEXTALIGN_ML);
 
 						Settings1v1.HSplitTop(20.0f, &Button, &Settings1v1);
 						static CLineInput s_1v1CustomMsgInput(g_Config.m_Cl1v1ModeCustomMsg, sizeof(g_Config.m_Cl1v1ModeCustomMsg));
@@ -602,7 +629,7 @@ void CMenus::RenderFex(CUIRect MainView, int CurPage)
 					ChatSettings.Margin(Margin, &ChatSettings);
 
 					ChatSettings.HSplitTop(HeaderHeight, &Button, &ChatSettings);
-					Ui()->DoLabel(&Button, Localize("Chat Settings"), HeadlineFontSize, TEXTALIGN_ML);
+					Ui()->DoLabel(&Button, FeXLocalize("Chat Settings"), HeadlineFontSize, TEXTALIGN_ML);
 					{	
 						DoButton_CheckBoxAutoVMarginAndSet(&g_Config.m_ClShowMutedInConsole, ("Show Messages of Muted People in The Console"), &g_Config.m_ClShowMutedInConsole, &ChatSettings, LineSize);
 
@@ -713,7 +740,7 @@ void CMenus::RenderFex(CUIRect MainView, int CurPage)
 							Ui()->DoEditBox(&s_PrefixMsg, &Button, 14.0f);
 						}
 						ChatSettings.HSplitTop(55.0f, &Button, &ChatSettings);
-						Ui()->DoLabel(&Button, Localize("Chat Preview"), FontSize + 3, TEXTALIGN_ML);
+						Ui()->DoLabel(&Button, FeXLocalize("Chat Preview"), FontSize + 3, TEXTALIGN_ML);
 						ChatSettings.HSplitTop(-15.0f, &Button, &ChatSettings);
 
 						RenderChatPreview(ChatSettings);
@@ -731,7 +758,7 @@ void CMenus::RenderFex(CUIRect MainView, int CurPage)
 					MiscSettings.Margin(Margin, &MiscSettings);
 
 					MiscSettings.HSplitTop(HeaderHeight, &Button, &MiscSettings);
-					Ui()->DoLabel(&Button, Localize("Miscellaneous"), HeadlineFontSize, TEXTALIGN_ML);
+					Ui()->DoLabel(&Button, FeXLocalize("Miscellaneous"), HeadlineFontSize, TEXTALIGN_ML);
 
 					{
 						static std::vector<const char *> s_FontDropDownNames = {};
@@ -757,7 +784,7 @@ void CMenus::RenderFex(CUIRect MainView, int CurPage)
 						FontDropDownRect.VSplitRight(20.0f, &FontDropDownRect, &FontDirectory);
 						FontDropDownRect.VSplitRight(MarginSmall, &FontDropDownRect, nullptr);
 		
-						Ui()->DoLabel(&Label, Localize("Custom Font:"), FontSize, TEXTALIGN_ML);
+						Ui()->DoLabel(&Label, FeXLocalize("Custom Font:"), FontSize, TEXTALIGN_ML);
 						const int FontSelectedNew = Ui()->DoDropDown(&FontDropDownRect, FontSelectedOld, s_FontDropDownNames.data(), s_FontDropDownNames.size(), s_FontDropDownState);
 						if(FontSelectedOld != FontSelectedNew)
 						{
@@ -783,10 +810,10 @@ void CMenus::RenderFex(CUIRect MainView, int CurPage)
 					}
 					{
 						MiscSettings.HSplitTop(35.0f, &Button, &MiscSettings);
-						Ui()->DoLabel(&Button, Localize("Ad bots"), FontSize, TEXTALIGN_ML);
+						Ui()->DoLabel(&Button, FeXLocalize("Ad bots"), FontSize, TEXTALIGN_ML);
 						DoButton_CheckBoxAutoVMarginAndSet(&g_Config.m_ClAutoAddOnNameChange, ("Auto add group entries after rename"), &g_Config.m_ClAutoAddOnNameChange, &MiscSettings, LineSize);
 						MiscSettings.HSplitTop(2 * LineSize, &Button, &MiscSettings);
-						Ui()->DoScrollbarOption(&g_Config.m_ClDismissAdBots, &g_Config.m_ClDismissAdBots, &Button, Localize("Config Value: 1-dismisses adbots, 2-adds votekick if you say yes in chat, 3-direct votekicks adbots"), 0, 3, &CUi::ms_LinearScrollbarScale, CUi::SCROLLBAR_OPTION_MULTILINE);
+						Ui()->DoScrollbarOption(&g_Config.m_ClDismissAdBots, &g_Config.m_ClDismissAdBots, &Button, FeXLocalize("Config Value: 1-dismisses adbots, 2-adds votekick if you say yes in chat, 3-direct votekicks adbots"), 0, 3, &CUi::ms_LinearScrollbarScale, CUi::SCROLLBAR_OPTION_MULTILINE);
 					}
 				}
 			}
@@ -843,14 +870,14 @@ void CMenus::RenderFex(CUIRect MainView, int CurPage)
 	// 	LoadButton.VSplitRight(ButtonHeight + Spacing, &LoadButton, &DeleteButton);
 	
 	// 	static CButtonContainer s_DdnetSaveButton;
-	// 	if(DoButton_Menu(&s_DdnetSaveButton, Localize("Save Current"), 0, &SaveButton))
+	// 	if(DoButton_Menu(&s_DdnetSaveButton, FeXLocalize("Save Current"), 0, &SaveButton))
 	// 	{
 	// 		SaveCurrentConfig(false);
 	// 	}
 	
 	// 	static CButtonContainer s_DdnetLoadButton;
 	// 	bool CanLoadDdnet = m_SelectedDdnetConfig >= 0 && m_SelectedDdnetConfig < (int)m_vSavedDdnetConfigs.size();
-	// 	if(DoButton_Menu(&s_DdnetLoadButton, Localize("Load Selected"), !CanLoadDdnet, &LoadButton))
+	// 	if(DoButton_Menu(&s_DdnetLoadButton, FeXLocalize("Load Selected"), !CanLoadDdnet, &LoadButton))
 	// 	{
 	// 		if(CanLoadDdnet)
 	// 			LoadConfig(m_vSavedDdnetConfigs[m_SelectedDdnetConfig].c_str(), false);
@@ -861,7 +888,7 @@ void CMenus::RenderFex(CUIRect MainView, int CurPage)
 	// 	{
 	// 		 DeleteSavedConfig(m_vSavedDdnetConfigs[m_SelectedDdnetConfig].c_str(), false);
 	// 	}
-	// 	GameClient()->m_Tooltips.DoToolTip(&s_DdnetDeleteButton, &DeleteButton, Localize("Delete selected config profile"));
+	// 	GameClient()->m_Tooltips.DoToolTip(&s_DdnetDeleteButton, &DeleteButton, FeXLocalize("Delete selected config profile"));
 	
 	// 	FexSection.Draw(ColorRGBA(1,1,1,0.1f), IGraphics::CORNER_ALL, 5.0f);
 	// 	FexSection.Margin(10.0f, &FexSection);
@@ -892,14 +919,14 @@ void CMenus::RenderFex(CUIRect MainView, int CurPage)
 	// 	LoadButton.VSplitRight(ButtonHeight + Spacing, &LoadButton, &DeleteButton);
 	
 	// 	static CButtonContainer s_FexSaveButton;
-	// 	if(DoButton_Menu(&s_FexSaveButton, Localize("Save Current"), 0, &SaveButton))
+	// 	if(DoButton_Menu(&s_FexSaveButton, FeXLocalize("Save Current"), 0, &SaveButton))
 	// 	{
 	// 		SaveCurrentConfig(true);
 	// 	}
 	
 	// 	static CButtonContainer s_FexLoadButton;
 	// 	bool CanLoadFex = m_SelectedFexConfig >= 0 && m_SelectedFexConfig < (int)m_vSavedFexConfigs.size();
-	// 	if(DoButton_Menu(&s_FexLoadButton, Localize("Load Selected"), !CanLoadFex, &LoadButton))
+	// 	if(DoButton_Menu(&s_FexLoadButton, FeXLocalize("Load Selected"), !CanLoadFex, &LoadButton))
 	// 	{
 	// 		if(CanLoadFex)
 	// 			LoadConfig(m_vSavedFexConfigs[m_SelectedFexConfig].c_str(), true);
@@ -910,7 +937,7 @@ void CMenus::RenderFex(CUIRect MainView, int CurPage)
 	// 	{
 	// 		DeleteSavedConfig(m_vSavedFexConfigs[m_SelectedFexConfig].c_str(), true);
 	// 	}
-	// 	GameClient()->m_Tooltips.DoToolTip(&s_FexDeleteButton, &DeleteButton, Localize("Delete selected config profile"));
+	// 	GameClient()->m_Tooltips.DoToolTip(&s_FexDeleteButton, &DeleteButton, FeXLocalize("Delete selected config profile"));
 	
 	}
 }
@@ -942,17 +969,17 @@ void CMenus::RenderVisualFex(CUIRect MainView)
 
 				// ***** Tee Trails ***** //
 				TrailSettings.HSplitTop(HeaderHeight, &Label, &TrailSettings);
-				Ui()->DoLabel(&Label, Localize("Tee Trails"), HeadlineFontSize, TEXTALIGN_ML);
+				Ui()->DoLabel(&Label, FeXLocalize("Tee Trails"), HeadlineFontSize, TEXTALIGN_ML);
 				TrailSettings.HSplitTop(MarginSmall, nullptr, &TrailSettings);
 
-				DoButton_CheckBoxAutoVMarginAndSet(&g_Config.m_ClTeeTrail, Localize("Enable tee trails"), &g_Config.m_ClTeeTrail, &TrailSettings, LineSize);
-				DoButton_CheckBoxAutoVMarginAndSet(&g_Config.m_ClTeeTrailOthers, Localize("Show other tees' trails"), &g_Config.m_ClTeeTrailOthers, &TrailSettings, LineSize);
-				DoButton_CheckBoxAutoVMarginAndSet(&g_Config.m_ClTeeTrailFade, Localize("Fade trail alpha"), &g_Config.m_ClTeeTrailFade, &TrailSettings, LineSize);
-				DoButton_CheckBoxAutoVMarginAndSet(&g_Config.m_ClTeeTrailTaper, Localize("Taper trail width"), &g_Config.m_ClTeeTrailTaper, &TrailSettings, LineSize);
+				DoButton_CheckBoxAutoVMarginAndSet(&g_Config.m_ClTeeTrail, FeXLocalize("Enable tee trails"), &g_Config.m_ClTeeTrail, &TrailSettings, LineSize);
+				DoButton_CheckBoxAutoVMarginAndSet(&g_Config.m_ClTeeTrailOthers, FeXLocalize("Show other tees' trails"), &g_Config.m_ClTeeTrailOthers, &TrailSettings, LineSize);
+				DoButton_CheckBoxAutoVMarginAndSet(&g_Config.m_ClTeeTrailFade, FeXLocalize("Fade trail alpha"), &g_Config.m_ClTeeTrailFade, &TrailSettings, LineSize);
+				DoButton_CheckBoxAutoVMarginAndSet(&g_Config.m_ClTeeTrailTaper, FeXLocalize("Taper trail width"), &g_Config.m_ClTeeTrailTaper, &TrailSettings, LineSize);
 
 				TrailSettings.HSplitTop(MarginExtraSmall, nullptr, &TrailSettings);
 				std::vector<const char *> s_TrailDropDownNames;
-				s_TrailDropDownNames = {Localize("Solid"), Localize("Tee"), Localize("Rainbow"), Localize("Speed")};
+				s_TrailDropDownNames = {FeXLocalize("Solid"), FeXLocalize("Tee"), FeXLocalize("Rainbow"), FeXLocalize("Speed")};
 				static CUi::SDropDownState s_TrailDropDownState;
 				static CScrollRegion s_TrailDropDownScrollRegion;
 				s_TrailDropDownState.m_SelectionPopupContext.m_pScrollRegion = &s_TrailDropDownScrollRegion;
@@ -970,17 +997,17 @@ void CMenus::RenderVisualFex(CUIRect MainView)
 				static CButtonContainer s_TeeTrailColor;
 				if(g_Config.m_ClTeeTrailColorMode == CTrails::COLORMODE_SOLID)
 				{
-					DoLine_ColorPicker(&s_TeeTrailColor, ColorPickerLineSize, ColorPickerLabelSize, ColorPickerLineSpacing, &TrailSettings, Localize("Tee trail color"), &g_Config.m_ClTeeTrailColor, ColorRGBA(1.0f, 1.0f, 1.0f), false);
+					DoLine_ColorPicker(&s_TeeTrailColor, ColorPickerLineSize, ColorPickerLabelSize, ColorPickerLineSpacing, &TrailSettings, FeXLocalize("Tee trail color"), &g_Config.m_ClTeeTrailColor, ColorRGBA(1.0f, 1.0f, 1.0f), false);
 				}
 				else
 					TrailSettings.HSplitTop(ColorPickerLineSize + ColorPickerLineSpacing, &Button, &TrailSettings);
 
 				TrailSettings.HSplitTop(LineSize, &Button, &TrailSettings);
-				Ui()->DoScrollbarOption(&g_Config.m_ClTeeTrailWidth, &g_Config.m_ClTeeTrailWidth, &Button, Localize("Trail width"), 0, 20);
+				Ui()->DoScrollbarOption(&g_Config.m_ClTeeTrailWidth, &g_Config.m_ClTeeTrailWidth, &Button, FeXLocalize("Trail width"), 0, 20);
 				TrailSettings.HSplitTop(LineSize, &Button, &TrailSettings);
-				Ui()->DoScrollbarOption(&g_Config.m_ClTeeTrailLength, &g_Config.m_ClTeeTrailLength, &Button, Localize("Trail length"), 0, 200);
+				Ui()->DoScrollbarOption(&g_Config.m_ClTeeTrailLength, &g_Config.m_ClTeeTrailLength, &Button, FeXLocalize("Trail length"), 0, 200);
 				TrailSettings.HSplitTop(LineSize, &Button, &TrailSettings);
-				Ui()->DoScrollbarOption(&g_Config.m_ClTeeTrailAlpha, &g_Config.m_ClTeeTrailAlpha, &Button, Localize("Trail alpha"), 0, 100);
+				Ui()->DoScrollbarOption(&g_Config.m_ClTeeTrailAlpha, &g_Config.m_ClTeeTrailAlpha, &Button, FeXLocalize("Trail alpha"), 0, 100);
 
 				TrailSettings.HSplitTop(MarginSmall, nullptr, &TrailSettings);
 			}
@@ -994,15 +1021,15 @@ void CMenus::RenderVisualFex(CUIRect MainView)
 			OutlineSettings.Margin(Margin, &OutlineSettings);
 
 			OutlineSettings.HSplitTop(HeaderHeight, &Button, &OutlineSettings);
-			Ui()->DoLabel(&Button, Localize("Outlines"), HeadlineFontSize, TEXTALIGN_ML);
+			Ui()->DoLabel(&Button, FeXLocalize("Outlines"), HeadlineFontSize, TEXTALIGN_ML);
 			{
-				DoButton_CheckBoxAutoVMarginAndSet(&g_Config.m_ClOutline, Localize("Enable Outlines"), &g_Config.m_ClOutline, &OutlineSettings, LineMargin);
+				DoButton_CheckBoxAutoVMarginAndSet(&g_Config.m_ClOutline, FeXLocalize("Enable Outlines"), &g_Config.m_ClOutline, &OutlineSettings, LineMargin);
 				OutlineSettings.HSplitTop(5.0f, &Button, &OutlineSettings);
-				DoButton_CheckBoxAutoVMarginAndSet(&g_Config.m_ClOutlineEntities, Localize("Only show outlines in entities"), &g_Config.m_ClOutlineEntities, &OutlineSettings, LineMargin);
-				DoButton_CheckBoxAutoVMarginAndSet(&g_Config.m_ClOutlineFreeze, Localize("Outline freeze & deep"), &g_Config.m_ClOutlineFreeze, &OutlineSettings, LineMargin);
-				DoButton_CheckBoxAutoVMarginAndSet(&g_Config.m_ClOutlineSolid, Localize("Outline walls"), &g_Config.m_ClOutlineSolid, &OutlineSettings, LineMargin);
-				DoButton_CheckBoxAutoVMarginAndSet(&g_Config.m_ClOutlineTele, Localize("Outline teleporter"), &g_Config.m_ClOutlineTele, &OutlineSettings, LineMargin);
-				DoButton_CheckBoxAutoVMarginAndSet(&g_Config.m_ClOutlineUnFreeze, Localize("Outline unfreeze & undeep"), &g_Config.m_ClOutlineUnFreeze, &OutlineSettings, LineMargin);
+				DoButton_CheckBoxAutoVMarginAndSet(&g_Config.m_ClOutlineEntities, FeXLocalize("Only show outlines in entities"), &g_Config.m_ClOutlineEntities, &OutlineSettings, LineMargin);
+				DoButton_CheckBoxAutoVMarginAndSet(&g_Config.m_ClOutlineFreeze, FeXLocalize("Outline freeze & deep"), &g_Config.m_ClOutlineFreeze, &OutlineSettings, LineMargin);
+				DoButton_CheckBoxAutoVMarginAndSet(&g_Config.m_ClOutlineSolid, FeXLocalize("Outline walls"), &g_Config.m_ClOutlineSolid, &OutlineSettings, LineMargin);
+				DoButton_CheckBoxAutoVMarginAndSet(&g_Config.m_ClOutlineTele, FeXLocalize("Outline teleporter"), &g_Config.m_ClOutlineTele, &OutlineSettings, LineMargin);
+				DoButton_CheckBoxAutoVMarginAndSet(&g_Config.m_ClOutlineUnFreeze, FeXLocalize("Outline unfreeze & undeep"), &g_Config.m_ClOutlineUnFreeze, &OutlineSettings, LineMargin);
 
 				{
 					OutlineSettings.HSplitTop(5.0f, &Button, &OutlineSettings);
@@ -1037,18 +1064,18 @@ void CMenus::RenderVisualFex(CUIRect MainView)
 				OutlineSettings.VSplitLeft(-5.0f, 0x0, &OutlineSettings);
 
 				OutlineSettings.HSplitTop(2.0f, &OutlineSettings, &OutlineSettings);
-				DoLine_ColorPicker(&OutlineColorFreezeID, ColorPickerLineSize, ColorPickerLabelSize, ColorPickerLineSpacing, &OutlineSettings, Localize("Freeze Outline Color"), &g_Config.m_ClOutlineColorFreeze, ColorRGBA(0.0f, 0.0f, 0.0f, 1.0f), false);
+				DoLine_ColorPicker(&OutlineColorFreezeID, ColorPickerLineSize, ColorPickerLabelSize, ColorPickerLineSpacing, &OutlineSettings, FeXLocalize("Freeze Outline Color"), &g_Config.m_ClOutlineColorFreeze, ColorRGBA(0.0f, 0.0f, 0.0f, 1.0f), false);
 
 				OutlineSettings.HSplitTop(2.0f, &OutlineSettings, &OutlineSettings);
-				DoLine_ColorPicker(&OutlineColorSolidID, ColorPickerLineSize, ColorPickerLabelSize, ColorPickerLineSpacing, &OutlineSettings, Localize("Walls Outline Color"), &g_Config.m_ClOutlineColorSolid, ColorRGBA(0.0f, 0.0f, 0.0f, 1.0f), false);
+				DoLine_ColorPicker(&OutlineColorSolidID, ColorPickerLineSize, ColorPickerLabelSize, ColorPickerLineSpacing, &OutlineSettings, FeXLocalize("Walls Outline Color"), &g_Config.m_ClOutlineColorSolid, ColorRGBA(0.0f, 0.0f, 0.0f, 1.0f), false);
 
 				OutlineSettings.HSplitTop(2.0f, &OutlineSettings, &OutlineSettings);
-				DoLine_ColorPicker(&OutlineColorTeleID, ColorPickerLineSize, ColorPickerLabelSize, ColorPickerLineSpacing, &OutlineSettings, Localize("Teleporter Outline Color"), &g_Config.m_ClOutlineColorTele, ColorRGBA(0.0f, 0.0f, 0.0f, 1.0f), false);
+				DoLine_ColorPicker(&OutlineColorTeleID, ColorPickerLineSize, ColorPickerLabelSize, ColorPickerLineSpacing, &OutlineSettings, FeXLocalize("Teleporter Outline Color"), &g_Config.m_ClOutlineColorTele, ColorRGBA(0.0f, 0.0f, 0.0f, 1.0f), false);
 
 				OutlineSettings.HSplitTop(2.0f, &OutlineSettings, &OutlineSettings);
-				DoLine_ColorPicker(&OutlineColorUnfreezeID, ColorPickerLineSize, ColorPickerLabelSize, ColorPickerLineSpacing, &OutlineSettings, Localize("Unfreeze Outline Color"), &g_Config.m_ClOutlineColorUnfreeze, ColorRGBA(0.0f, 0.0f, 0.0f, 1.0f), false);
+				DoLine_ColorPicker(&OutlineColorUnfreezeID, ColorPickerLineSize, ColorPickerLabelSize, ColorPickerLineSpacing, &OutlineSettings, FeXLocalize("Unfreeze Outline Color"), &g_Config.m_ClOutlineColorUnfreeze, ColorRGBA(0.0f, 0.0f, 0.0f, 1.0f), false);
 
-				DoLine_ColorPicker(&OutlineColorKillID, ColorPickerLineSize, ColorPickerLabelSize, ColorPickerLineSpacing, &OutlineSettings, Localize("Kill outline color"), &g_Config.m_ClOutlineColorKill, ColorRGBA(0.0f, 0.0f, 0.0f), false);
+				DoLine_ColorPicker(&OutlineColorKillID, ColorPickerLineSize, ColorPickerLabelSize, ColorPickerLineSpacing, &OutlineSettings, FeXLocalize("Kill outline color"), &g_Config.m_ClOutlineColorKill, ColorRGBA(0.0f, 0.0f, 0.0f), false);
 
 			}
 		}
@@ -1067,10 +1094,10 @@ void CMenus::RenderVisualFex(CUIRect MainView)
 				VisualSettings.VMargin(Margin, &VisualSettings);
 				
 				VisualSettings.HSplitTop(HeaderHeight, &Label, &VisualSettings);
-				Ui()->DoLabel(&Label, Localize("Visual"), HeadlineFontSize, TEXTALIGN_ML);
+				Ui()->DoLabel(&Label, FeXLocalize("Visual"), HeadlineFontSize, TEXTALIGN_ML);
 				VisualSettings.HSplitTop(MarginSmall, nullptr, &VisualSettings);
 
-				//DoButton_CheckBoxAutoVMarginAndSet(&g_Config.m_ClVisualTees, Localize("Visual Tees"), &g_Config.m_ClRainbowTees, &Column, LineSize);
+				//DoButton_CheckBoxAutoVMarginAndSet(&g_Config.m_ClVisualTees, FeXLocalize("Visual Tees"), &g_Config.m_ClRainbowTees, &Column, LineSize);
 				//DoButton_CheckBoxAutoVMarginAndSet(&g_Config.m_ClRainbowWeapon, TCLocalize("Visual weapons"), &g_Config.m_ClRainbowWeapon, &Column, LineSize);
 				//DoButton_CheckBoxAutoVMarginAndSet(&g_Config.m_ClRainbowHook, TCLocalize("Visual hook"), &g_Config.m_ClRainbowHook, &Column, LineSize);
 				//DoButton_CheckBoxAutoVMarginAndSet(&g_Config.m_ClRainbowOthers, TCLocalize("Visual others"), &g_Config.m_ClRainbowOthers, &Column, LineSize);
@@ -1079,7 +1106,7 @@ void CMenus::RenderVisualFex(CUIRect MainView)
 				Offset = Offset + 22.5f;
 				VisualSettings.HSplitTop(MarginExtraSmall, nullptr, &VisualSettings);
 				static std::vector<const char *> s_ColorDropDownNames;
-				s_ColorDropDownNames = {Localize("Weapon"), Localize("Hook"), Localize("Tees"), Localize("Cursor")};
+				s_ColorDropDownNames = {FeXLocalize("Weapon"), FeXLocalize("Hook"), FeXLocalize("Tees"), FeXLocalize("Cursor")};
 				static CUi::SDropDownState s_ColorDropDownState;
 				static CScrollRegion s_ColorDropDownScrollRegion;
 				s_ColorDropDownState.m_SelectionPopupContext.m_pScrollRegion = &s_ColorDropDownScrollRegion;
@@ -1097,10 +1124,10 @@ void CMenus::RenderVisualFex(CUIRect MainView)
 				{
 					Offset = Offset + 75.0f;
 					VisualSettings.HSplitTop(HeaderHeight, &Label, &VisualSettings);
-					Ui()->DoLabel(&Label, Localize("Weapon"), HeadlineFontSize, TEXTALIGN_ML);
+					Ui()->DoLabel(&Label, FeXLocalize("Weapon"), HeadlineFontSize, TEXTALIGN_ML);
 					VisualSettings.HSplitTop(MarginExtraSmall, nullptr, &VisualSettings);
 					static std::vector<const char *> s_VisualDropDownNames;
-					s_VisualDropDownNames = {Localize("Rainbow"), Localize("Pulse"), Localize("Custom Color"), Localize("Random")};
+					s_VisualDropDownNames = {FeXLocalize("Rainbow"), FeXLocalize("Pulse"), FeXLocalize("Custom Color"), FeXLocalize("Random")};
 					static CUi::SDropDownState s_VisualDropDownState;
 					static CScrollRegion s_VisualDropDownScrollRegion;
 					s_VisualDropDownState.m_SelectionPopupContext.m_pScrollRegion = &s_VisualDropDownScrollRegion;
@@ -1114,8 +1141,8 @@ void CMenus::RenderVisualFex(CUIRect MainView)
 						VisualSelectedOld = VisualSelectedNew;
 						dbg_msg("FeX[visual]:", "visual mode[weapons] changed to %d", g_Config.m_ClVisualModeWeapon);
 					}
-					DoButton_CheckBoxAutoVMarginAndSet(&g_Config.m_ClVisualWeapon, Localize("Visual Weapon"), &g_Config.m_ClVisualWeapon, &VisualSettings, LineSize);
-					DoButton_CheckBoxAutoVMarginAndSet(&g_Config.m_ClVisualWeaponOthers, Localize("Visual Weapon Others"), &g_Config.m_ClVisualWeaponOthers, &VisualSettings, LineSize);
+					DoButton_CheckBoxAutoVMarginAndSet(&g_Config.m_ClVisualWeapon, FeXLocalize("Visual Weapon"), &g_Config.m_ClVisualWeapon, &VisualSettings, LineSize);
+					DoButton_CheckBoxAutoVMarginAndSet(&g_Config.m_ClVisualWeaponOthers, FeXLocalize("Visual Weapon Others"), &g_Config.m_ClVisualWeaponOthers, &VisualSettings, LineSize);
 
 					if(g_Config.m_ClVisualModeWeapon == 3)
 					{
@@ -1124,17 +1151,17 @@ void CMenus::RenderVisualFex(CUIRect MainView)
 						VisualSettings.HSplitTop(LineSize, &Button, &VisualSettings);
 						static CButtonContainer CustomColor;
 
-						DoLine_ColorPicker(&CustomColor, ColorPickerLineSize, ColorPickerLabelSize, ColorPickerLineSpacing, &VisualSettings, Localize("Weapon color"), &g_Config.m_ClVisualCusColor1, ColorRGBA(0.0f, 0.0f, 0.0f), false);
+						DoLine_ColorPicker(&CustomColor, ColorPickerLineSize, ColorPickerLabelSize, ColorPickerLineSpacing, &VisualSettings, FeXLocalize("Weapon color"), &g_Config.m_ClVisualCusColor1, ColorRGBA(0.0f, 0.0f, 0.0f), false);
 					}
 				}
 				else if(g_Config.m_ClVisualMenuMode == 2)
 				{
 					Offset = Offset + 75.0f;
 					VisualSettings.HSplitTop(HeaderHeight, &Label, &VisualSettings);
-					Ui()->DoLabel(&Label, Localize("Hook"), HeadlineFontSize, TEXTALIGN_ML);
+					Ui()->DoLabel(&Label, FeXLocalize("Hook"), HeadlineFontSize, TEXTALIGN_ML);
 					VisualSettings.HSplitTop(MarginExtraSmall, nullptr, &VisualSettings);
 					static std::vector<const char *> s_VisualDropDownNames;
-					s_VisualDropDownNames = {Localize("Rainbow"), Localize("Pulse"), Localize("Custom Color"), Localize("Random")};
+					s_VisualDropDownNames = {FeXLocalize("Rainbow"), FeXLocalize("Pulse"), FeXLocalize("Custom Color"), FeXLocalize("Random")};
 					static CUi::SDropDownState s_VisualDropDownState;
 					static CScrollRegion s_VisualDropDownScrollRegion;
 					s_VisualDropDownState.m_SelectionPopupContext.m_pScrollRegion = &s_VisualDropDownScrollRegion;
@@ -1148,8 +1175,8 @@ void CMenus::RenderVisualFex(CUIRect MainView)
 						VisualSelectedOld = VisualSelectedNew;
 						dbg_msg("FeX[visual]:", "visual mode[hook] changed to %d", g_Config.m_ClVisualModeHook);
 					}
-					DoButton_CheckBoxAutoVMarginAndSet(&g_Config.m_ClVisualHook, Localize("Visual Hook"), &g_Config.m_ClVisualHook, &VisualSettings, LineSize);
-					DoButton_CheckBoxAutoVMarginAndSet(&g_Config.m_ClVisualHookOthers, Localize("Visual Hook Others"), &g_Config.m_ClVisualHookOthers, &VisualSettings, LineSize);
+					DoButton_CheckBoxAutoVMarginAndSet(&g_Config.m_ClVisualHook, FeXLocalize("Visual Hook"), &g_Config.m_ClVisualHook, &VisualSettings, LineSize);
+					DoButton_CheckBoxAutoVMarginAndSet(&g_Config.m_ClVisualHookOthers, FeXLocalize("Visual Hook Others"), &g_Config.m_ClVisualHookOthers, &VisualSettings, LineSize);
 					if(g_Config.m_ClVisualModeHook == 3)
 					{
 						Offset = Offset + 29.0f;
@@ -1157,17 +1184,17 @@ void CMenus::RenderVisualFex(CUIRect MainView)
 						VisualSettings.HSplitTop(LineSize, &Button, &VisualSettings);
 						static CButtonContainer CustomColor;
 
-						DoLine_ColorPicker(&CustomColor, ColorPickerLineSize, ColorPickerLabelSize, ColorPickerLineSpacing, &VisualSettings, Localize("Hook color"), &g_Config.m_ClVisualCusColor2, ColorRGBA(0.0f, 0.0f, 0.0f), false);
+						DoLine_ColorPicker(&CustomColor, ColorPickerLineSize, ColorPickerLabelSize, ColorPickerLineSpacing, &VisualSettings, FeXLocalize("Hook color"), &g_Config.m_ClVisualCusColor2, ColorRGBA(0.0f, 0.0f, 0.0f), false);
 					}
 				}
 				else if(g_Config.m_ClVisualMenuMode == 3)
 				{
 					Offset = Offset + 75.0f;
 					VisualSettings.HSplitTop(HeaderHeight, &Label, &VisualSettings);
-					Ui()->DoLabel(&Label, Localize("Tees"), HeadlineFontSize, TEXTALIGN_ML);
+					Ui()->DoLabel(&Label, FeXLocalize("Tees"), HeadlineFontSize, TEXTALIGN_ML);
 					VisualSettings.HSplitTop(MarginExtraSmall, nullptr, &VisualSettings);
 					static std::vector<const char *> s_VisualDropDownNames;
-					s_VisualDropDownNames = {Localize("Rainbow"), Localize("Pulse"), Localize("Custom Color"), Localize("Random")};
+					s_VisualDropDownNames = {FeXLocalize("Rainbow"), FeXLocalize("Pulse"), FeXLocalize("Custom Color"), FeXLocalize("Random")};
 					static CUi::SDropDownState s_VisualDropDownState;
 					static CScrollRegion s_VisualDropDownScrollRegion;
 					s_VisualDropDownState.m_SelectionPopupContext.m_pScrollRegion = &s_VisualDropDownScrollRegion;
@@ -1181,8 +1208,8 @@ void CMenus::RenderVisualFex(CUIRect MainView)
 						VisualSelectedOld = VisualSelectedNew;
 						dbg_msg("FeX[visual]:", "visual mode[Tee] changed to %d", g_Config.m_ClVisualModeTee);
 					}
-					DoButton_CheckBoxAutoVMarginAndSet(&g_Config.m_ClVisualTees, Localize("Visual Tees"), &g_Config.m_ClVisualTees, &VisualSettings, LineSize);
-					DoButton_CheckBoxAutoVMarginAndSet(&g_Config.m_ClVisualTeesOthers, Localize("Visual Tees Others"), &g_Config.m_ClVisualTeesOthers, &VisualSettings, LineSize);
+					DoButton_CheckBoxAutoVMarginAndSet(&g_Config.m_ClVisualTees, FeXLocalize("Visual Tees"), &g_Config.m_ClVisualTees, &VisualSettings, LineSize);
+					DoButton_CheckBoxAutoVMarginAndSet(&g_Config.m_ClVisualTeesOthers, FeXLocalize("Visual Tees Others"), &g_Config.m_ClVisualTeesOthers, &VisualSettings, LineSize);
 					if(g_Config.m_ClVisualModeTee == 3)
 					{
 						Offset = Offset + 29.0f;
@@ -1190,17 +1217,17 @@ void CMenus::RenderVisualFex(CUIRect MainView)
 						VisualSettings.HSplitTop(LineSize, &Button, &VisualSettings);
 						static CButtonContainer CustomColor;
 
-						DoLine_ColorPicker(&CustomColor, ColorPickerLineSize, ColorPickerLabelSize, ColorPickerLineSpacing, &VisualSettings, Localize("Tee color"), &g_Config.m_ClVisualCusColor3, ColorRGBA(0.0f, 0.0f, 0.0f), false);
+						DoLine_ColorPicker(&CustomColor, ColorPickerLineSize, ColorPickerLabelSize, ColorPickerLineSpacing, &VisualSettings, FeXLocalize("Tee color"), &g_Config.m_ClVisualCusColor3, ColorRGBA(0.0f, 0.0f, 0.0f), false);
 					}
 				}
 				else if(g_Config.m_ClVisualMenuMode == 4)
 				{
 					Offset = Offset + 75.0f;
 					VisualSettings.HSplitTop(HeaderHeight, &Label, &VisualSettings);
-					Ui()->DoLabel(&Label, Localize("Cursor"), HeadlineFontSize, TEXTALIGN_ML);
+					Ui()->DoLabel(&Label, FeXLocalize("Cursor"), HeadlineFontSize, TEXTALIGN_ML);
 					VisualSettings.HSplitTop(MarginExtraSmall, nullptr, &VisualSettings);
 					static std::vector<const char *> s_VisualDropDownNames;
-					s_VisualDropDownNames = {Localize("Rainbow"), Localize("Pulse"), Localize("Custom Color"), Localize("Random")};
+					s_VisualDropDownNames = {FeXLocalize("Rainbow"), FeXLocalize("Pulse"), FeXLocalize("Custom Color"), FeXLocalize("Random")};
 					static CUi::SDropDownState s_VisualDropDownState;
 					static CScrollRegion s_VisualDropDownScrollRegion;
 					s_VisualDropDownState.m_SelectionPopupContext.m_pScrollRegion = &s_VisualDropDownScrollRegion;
@@ -1214,20 +1241,20 @@ void CMenus::RenderVisualFex(CUIRect MainView)
 						VisualSelectedOld = VisualSelectedNew;
 						dbg_msg("FeX[visual]:", "visual mode[Cursor] changed to %d", g_Config.m_ClVisualModeCursor);
 					}
-					DoButton_CheckBoxAutoVMarginAndSet(&g_Config.m_ClVisualCursor, Localize("Visual Cursor"), &g_Config.m_ClVisualCursor, &VisualSettings, LineSize);
-					DoButton_CheckBoxAutoVMarginAndSet(&g_Config.m_ClVisualCursorSpec, Localize("Visual Cursor Spectators"), &g_Config.m_ClVisualCursorSpec, &VisualSettings, LineSize);
+					DoButton_CheckBoxAutoVMarginAndSet(&g_Config.m_ClVisualCursor, FeXLocalize("Visual Cursor"), &g_Config.m_ClVisualCursor, &VisualSettings, LineSize);
+					DoButton_CheckBoxAutoVMarginAndSet(&g_Config.m_ClVisualCursorSpec, FeXLocalize("Visual Cursor Spectators"), &g_Config.m_ClVisualCursorSpec, &VisualSettings, LineSize);
 					if(g_Config.m_ClVisualModeCursor == 3)
 					{
 						Offset = Offset + 29.0f;
 						VisualSettings.HSplitTop(LineSize, &Button, &VisualSettings);
 						static CButtonContainer CustomColor;
 
-						DoLine_ColorPicker(&CustomColor, ColorPickerLineSize, ColorPickerLabelSize, ColorPickerLineSpacing, &VisualSettings, Localize("Cursor color"), &g_Config.m_ClVisualCusColor4, ColorRGBA(0.0f, 0.0f, 0.0f), false);
+						DoLine_ColorPicker(&CustomColor, ColorPickerLineSize, ColorPickerLabelSize, ColorPickerLineSpacing, &VisualSettings, FeXLocalize("Cursor color"), &g_Config.m_ClVisualCusColor4, ColorRGBA(0.0f, 0.0f, 0.0f), false);
 					}
 				}
 				VisualSettings.HSplitTop(MarginExtraSmall, nullptr, &VisualSettings);
 				VisualSettings.HSplitTop(LineSize, &Button, &VisualSettings);
-				Ui()->DoScrollbarOption(&g_Config.m_ClVisualSpeed, &g_Config.m_ClVisualSpeed, &Button, Localize("Visual: Pulse, Rainbow, Random speed"), 0, 5000, &CUi::ms_LogarithmicScrollbarScale, 0, "%");
+				Ui()->DoScrollbarOption(&g_Config.m_ClVisualSpeed, &g_Config.m_ClVisualSpeed, &Button, FeXLocalize("Visual: Pulse, Rainbow, Random speed"), 0, 5000, &CUi::ms_LogarithmicScrollbarScale, 0, "%");
 				VisualSettings.HSplitTop(MarginExtraSmall, nullptr, &VisualSettings);
 				VisualSettings.HSplitTop(MarginSmall, nullptr, &VisualSettings);
 			}
@@ -1241,41 +1268,41 @@ void CMenus::RenderVisualFex(CUIRect MainView)
 			PlayerIndicatorSettings.Margin(Margin, &PlayerIndicatorSettings);
 
 			PlayerIndicatorSettings.HSplitTop(HeaderHeight, &Button, &PlayerIndicatorSettings);
-			Ui()->DoLabel(&Button, Localize("Player Indicator"), 20.0f, TEXTALIGN_ML);
+			Ui()->DoLabel(&Button, FeXLocalize("Player Indicator"), 20.0f, TEXTALIGN_ML);
 			{
 				DoButton_CheckBoxAutoVMarginAndSet(&g_Config.m_ClPlayerIndicator, ("Enable Player Indicators"), &g_Config.m_ClPlayerIndicator, &PlayerIndicatorSettings, LineSize);
 				PlayerIndicatorSettings.HSplitTop(5.0f, &Button, &PlayerIndicatorSettings);
-				DoButton_CheckBoxAutoVMarginAndSet(&g_Config.m_ClIndicatorHideOnScreen, Localize("Hide indicator for tees on your screen"), &g_Config.m_ClIndicatorHideOnScreen, &PlayerIndicatorSettings, LineSize);
-				DoButton_CheckBoxAutoVMarginAndSet(&g_Config.m_ClPlayerIndicatorFreeze, Localize("Show only freeze Players"), &g_Config.m_ClPlayerIndicatorFreeze, &PlayerIndicatorSettings, LineSize);
-				DoButton_CheckBoxAutoVMarginAndSet(&g_Config.m_ClIndicatorTeamOnly, Localize("Only show after joining a team"), &g_Config.m_ClIndicatorTeamOnly, &PlayerIndicatorSettings, LineSize);
-				DoButton_CheckBoxAutoVMarginAndSet(&g_Config.m_ClIndicatorTees, Localize("Render tiny tees instead of circles"), &g_Config.m_ClIndicatorTees, &PlayerIndicatorSettings, LineSize);
-				DoButton_CheckBoxAutoVMarginAndSet(&g_Config.m_ClWarListIndicator, Localize("Use warlist groups for indicator"), &g_Config.m_ClWarListIndicator, &PlayerIndicatorSettings, LineSize);
+				DoButton_CheckBoxAutoVMarginAndSet(&g_Config.m_ClIndicatorHideOnScreen, FeXLocalize("Hide indicator for tees on your screen"), &g_Config.m_ClIndicatorHideOnScreen, &PlayerIndicatorSettings, LineSize);
+				DoButton_CheckBoxAutoVMarginAndSet(&g_Config.m_ClPlayerIndicatorFreeze, FeXLocalize("Show only freeze Players"), &g_Config.m_ClPlayerIndicatorFreeze, &PlayerIndicatorSettings, LineSize);
+				DoButton_CheckBoxAutoVMarginAndSet(&g_Config.m_ClIndicatorTeamOnly, FeXLocalize("Only show after joining a team"), &g_Config.m_ClIndicatorTeamOnly, &PlayerIndicatorSettings, LineSize);
+				DoButton_CheckBoxAutoVMarginAndSet(&g_Config.m_ClIndicatorTees, FeXLocalize("Render tiny tees instead of circles"), &g_Config.m_ClIndicatorTees, &PlayerIndicatorSettings, LineSize);
+				DoButton_CheckBoxAutoVMarginAndSet(&g_Config.m_ClWarListIndicator, FeXLocalize("Use warlist groups for indicator"), &g_Config.m_ClWarListIndicator, &PlayerIndicatorSettings, LineSize);
 	
 				PlayerIndicatorSettings.HSplitTop(LineSize, &Button, &PlayerIndicatorSettings);
-				Ui()->DoScrollbarOption(&g_Config.m_ClIndicatorRadius, &g_Config.m_ClIndicatorRadius, &Button, Localize("Indicator size"), 1, 16);
+				Ui()->DoScrollbarOption(&g_Config.m_ClIndicatorRadius, &g_Config.m_ClIndicatorRadius, &Button, FeXLocalize("Indicator size"), 1, 16);
 				PlayerIndicatorSettings.HSplitTop(LineSize, &Button, &PlayerIndicatorSettings);
-				Ui()->DoScrollbarOption(&g_Config.m_ClIndicatorOpacity, &g_Config.m_ClIndicatorOpacity, &Button, Localize("Indicator opacity"), 0, 100);
-				DoButton_CheckBoxAutoVMarginAndSet(&g_Config.m_ClIndicatorVariableDistance, Localize("Change indicator offset based on distance to other tees"), &g_Config.m_ClIndicatorVariableDistance, &PlayerIndicatorSettings, LineSize);
+				Ui()->DoScrollbarOption(&g_Config.m_ClIndicatorOpacity, &g_Config.m_ClIndicatorOpacity, &Button, FeXLocalize("Indicator opacity"), 0, 100);
+				DoButton_CheckBoxAutoVMarginAndSet(&g_Config.m_ClIndicatorVariableDistance, FeXLocalize("Change indicator offset based on distance to other tees"), &g_Config.m_ClIndicatorVariableDistance, &PlayerIndicatorSettings, LineSize);
 
 				if(g_Config.m_ClIndicatorVariableDistance)
 				{
 					PlayerIndicatorSettings.HSplitTop(LineSize, &Button, &PlayerIndicatorSettings);
-					Ui()->DoScrollbarOption(&g_Config.m_ClIndicatorOffset, &g_Config.m_ClIndicatorOffset, &Button, Localize("Indicator min offset"), 16, 200);
+					Ui()->DoScrollbarOption(&g_Config.m_ClIndicatorOffset, &g_Config.m_ClIndicatorOffset, &Button, FeXLocalize("Indicator min offset"), 16, 200);
 					PlayerIndicatorSettings.HSplitTop(LineSize, &Button, &PlayerIndicatorSettings);
-					Ui()->DoScrollbarOption(&g_Config.m_ClIndicatorOffsetMax, &g_Config.m_ClIndicatorOffsetMax, &Button, Localize("Indicator max offset"), 16, 200);
+					Ui()->DoScrollbarOption(&g_Config.m_ClIndicatorOffsetMax, &g_Config.m_ClIndicatorOffsetMax, &Button, FeXLocalize("Indicator max offset"), 16, 200);
 					PlayerIndicatorSettings.HSplitTop(LineSize, &Button, &PlayerIndicatorSettings);
-					Ui()->DoScrollbarOption(&g_Config.m_ClIndicatorMaxDistance, &g_Config.m_ClIndicatorMaxDistance, &Button, Localize("Indicator max distance"), 500, 7000);
+					Ui()->DoScrollbarOption(&g_Config.m_ClIndicatorMaxDistance, &g_Config.m_ClIndicatorMaxDistance, &Button, FeXLocalize("Indicator max distance"), 500, 7000);
 				}
 				else
 				{
 					PlayerIndicatorSettings.HSplitTop(LineSize, &Button, &PlayerIndicatorSettings);
-					Ui()->DoScrollbarOption(&g_Config.m_ClIndicatorOffset, &g_Config.m_ClIndicatorOffset, &Button, Localize("Indicator offset"), 16, 200);
+					Ui()->DoScrollbarOption(&g_Config.m_ClIndicatorOffset, &g_Config.m_ClIndicatorOffset, &Button, FeXLocalize("Indicator offset"), 16, 200);
 					PlayerIndicatorSettings.HSplitTop(LineSize * 2, nullptr, &PlayerIndicatorSettings);
 				}
 				if(g_Config.m_ClWarListIndicator)
 				{
 					char aBuf[128];
-					DoButton_CheckBoxAutoVMarginAndSet(&g_Config.m_ClWarListIndicatorAll, Localize("Show all warlist groups"), &g_Config.m_ClWarListIndicatorAll, &PlayerIndicatorSettings, LineSize);
+					DoButton_CheckBoxAutoVMarginAndSet(&g_Config.m_ClWarListIndicatorAll, FeXLocalize("Show all warlist groups"), &g_Config.m_ClWarListIndicatorAll, &PlayerIndicatorSettings, LineSize);
 					str_format(aBuf, sizeof(aBuf), "Show %s group", GameClient()->m_WarList.m_WarTypes.at(1)->m_aWarName);
 					DoButton_CheckBoxAutoVMarginAndSet(&g_Config.m_ClWarListIndicatorEnemy, aBuf, &g_Config.m_ClWarListIndicatorEnemy, &PlayerIndicatorSettings, LineSize);
 					str_format(aBuf, sizeof(aBuf), "Show %s group", GameClient()->m_WarList.m_WarTypes.at(2)->m_aWarName);
@@ -1284,9 +1311,9 @@ void CMenus::RenderVisualFex(CUIRect MainView)
 				else
 				{
 					static CButtonContainer IndicatorAliveColorID, IndicatorDeadColorID, IndicatorSavedColorID;
-					DoLine_ColorPicker(&IndicatorAliveColorID, ColorPickerLineSize, ColorPickerLabelSize, ColorPickerLineSpacing, &PlayerIndicatorSettings, Localize("Indicator alive color"), &g_Config.m_ClIndicatorAlive, ColorRGBA(0.0f, 0.0f, 0.0f), false);
-					DoLine_ColorPicker(&IndicatorDeadColorID, ColorPickerLineSize, ColorPickerLabelSize, ColorPickerLineSpacing, &PlayerIndicatorSettings, Localize("Indicator in freeze color"), &g_Config.m_ClIndicatorFreeze, ColorRGBA(0.0f, 0.0f, 0.0f), false);
-					DoLine_ColorPicker(&IndicatorSavedColorID, ColorPickerLineSize, ColorPickerLabelSize, ColorPickerLineSpacing, &PlayerIndicatorSettings, Localize("Indicator safe color"), &g_Config.m_ClIndicatorSaved, ColorRGBA(0.0f, 0.0f, 0.0f), false);
+					DoLine_ColorPicker(&IndicatorAliveColorID, ColorPickerLineSize, ColorPickerLabelSize, ColorPickerLineSpacing, &PlayerIndicatorSettings, FeXLocalize("Indicator alive color"), &g_Config.m_ClIndicatorAlive, ColorRGBA(0.0f, 0.0f, 0.0f), false);
+					DoLine_ColorPicker(&IndicatorDeadColorID, ColorPickerLineSize, ColorPickerLabelSize, ColorPickerLineSpacing, &PlayerIndicatorSettings, FeXLocalize("Indicator in freeze color"), &g_Config.m_ClIndicatorFreeze, ColorRGBA(0.0f, 0.0f, 0.0f), false);
+					DoLine_ColorPicker(&IndicatorSavedColorID, ColorPickerLineSize, ColorPickerLabelSize, ColorPickerLineSpacing, &PlayerIndicatorSettings, FeXLocalize("Indicator safe color"), &g_Config.m_ClIndicatorSaved, ColorRGBA(0.0f, 0.0f, 0.0f), false);
 				}
 			}
 		}
@@ -1303,13 +1330,13 @@ void CMenus::RenderVisualFex(CUIRect MainView)
 				Ui()->DoLabel(&Header, "Start Menu Settings", 14.0f, TEXTALIGN_ML);
 		
 				StartMenu.HSplitTop(20.0f, &Row, &StartMenu);
-				DoButton_CheckBoxAutoVMarginAndSet(&g_Config.m_ClStartMenuFrames, Localize("Show Frames"), &g_Config.m_ClStartMenuFrames, &Row, LineSize);
+				DoButton_CheckBoxAutoVMarginAndSet(&g_Config.m_ClStartMenuFrames, FeXLocalize("Show Frames"), &g_Config.m_ClStartMenuFrames, &Row, LineSize);
 		
-				DoButton_CheckBoxAutoVMarginAndSet(&g_Config.m_ClStartMenuInfo, Localize("Show Player Info"), &g_Config.m_ClStartMenuInfo, &Row, LineSize);
+				DoButton_CheckBoxAutoVMarginAndSet(&g_Config.m_ClStartMenuInfo, FeXLocalize("Show Player Info"), &g_Config.m_ClStartMenuInfo, &Row, LineSize);
 		
 				StartMenu.HSplitTop(25.0f, &Row, &StartMenu);
 				static std::vector<const char *> s_StartMenuDropDownNames;
-				s_StartMenuDropDownNames = {Localize("Dark"), Localize("Light"), Localize("Custom")};
+				s_StartMenuDropDownNames = {FeXLocalize("Dark"), FeXLocalize("Light"), FeXLocalize("Custom")};
 				static CUi::SDropDownState s_StartMenuDropDownState;
 				static CScrollRegion s_StartMenuDropDownScrollRegion;
 				s_StartMenuDropDownState.m_SelectionPopupContext.m_pScrollRegion = &s_StartMenuDropDownScrollRegion;
@@ -1388,7 +1415,7 @@ void CMenus::RenderSettingsProfiles(CUIRect MainView)
 
 	//======YOUR PROFILE======
 	char aTempBuf[256];
-	str_format(aTempBuf, sizeof(aTempBuf), "%s:", Localize("Your profile"));
+	str_format(aTempBuf, sizeof(aTempBuf), "%s:", FeXLocalize("Your profile"));
 	MainView.HSplitTop(LineSize, &Label, &MainView);
 	Ui()->DoLabel(&Label, aTempBuf, FontSize, TEXTALIGN_ML);
 	MainView.HSplitTop(MarginSmall, nullptr, &MainView);
@@ -1411,15 +1438,15 @@ void CMenus::RenderSettingsProfiles(CUIRect MainView)
 	Label.VSplitLeft(90.0f, &FlagRect, &Label);
 
 	Label.HSplitTop(LineSize, &Section, &Label);
-	str_format(aTempBuf, sizeof(aTempBuf), Localize("Name: %s"), aName);
+	str_format(aTempBuf, sizeof(aTempBuf), FeXLocalize("Name: %s"), aName);
 	Ui()->DoLabel(&Section, aTempBuf, FontSize, TEXTALIGN_ML);
 
 	Label.HSplitTop(LineSize, &Section, &Label);
-	str_format(aTempBuf, sizeof(aTempBuf), Localize("Clan: %s"), aClan);
+	str_format(aTempBuf, sizeof(aTempBuf), FeXLocalize("Clan: %s"), aClan);
 	Ui()->DoLabel(&Section, aTempBuf, FontSize, TEXTALIGN_ML);
 
 	Label.HSplitTop(LineSize, &Section, &Label);
-	str_format(aTempBuf, sizeof(aTempBuf), Localize("Skin: %s"), pSkinName);
+	str_format(aTempBuf, sizeof(aTempBuf), FeXLocalize("Skin: %s"), pSkinName);
 	Ui()->DoLabel(&Section, aTempBuf, FontSize, TEXTALIGN_ML);
 
 	FlagRect.VSplitRight(50.0f, nullptr, &FlagRect);
@@ -1441,7 +1468,7 @@ void CMenus::RenderSettingsProfiles(CUIRect MainView)
 		CProfile LoadProfile = GameClient()->m_SkinProfiles.m_Profiles[s_SelectedProfile];
 		MainView.HSplitTop(LineSize, nullptr, &MainView);
 		MainView.HSplitTop(10.0f, &Label, &MainView);
-		str_format(aTempBuf, sizeof(aTempBuf), "%s:", Localize("After Load"));
+		str_format(aTempBuf, sizeof(aTempBuf), "%s:", FeXLocalize("After Load"));
 		Ui()->DoLabel(&Label, aTempBuf, FontSize, TEXTALIGN_ML);
 
 		MainView.HSplitTop(50.0f, &Label, &MainView);
@@ -1475,15 +1502,15 @@ void CMenus::RenderSettingsProfiles(CUIRect MainView)
 		Label.VSplitLeft(90.0f, &FlagRect, &Label);
 
 		Label.HSplitTop(LineSize, &Section, &Label);
-		str_format(aTempBuf, sizeof(aTempBuf), Localize("Name: %s"), aName);
+		str_format(aTempBuf, sizeof(aTempBuf), FeXLocalize("Name: %s"), aName);
 		Ui()->DoLabel(&Section, aTempBuf, FontSize, TEXTALIGN_ML);
 
 		Label.HSplitTop(LineSize, &Section, &Label);
-		str_format(aTempBuf, sizeof(aTempBuf), Localize("Clan: %s"), aClan);
+		str_format(aTempBuf, sizeof(aTempBuf), FeXLocalize("Clan: %s"), aClan);
 		Ui()->DoLabel(&Section, aTempBuf, FontSize, TEXTALIGN_ML);
 
 		Label.HSplitTop(LineSize, &Section, &Label);
-		str_format(aTempBuf, sizeof(aTempBuf), Localize("Skin: %s"), (DoSkin && strlen(LoadProfile.SkinName) != 0) ? LoadProfile.SkinName : pSkinName);
+		str_format(aTempBuf, sizeof(aTempBuf), FeXLocalize("Skin: %s"), (DoSkin && strlen(LoadProfile.SkinName) != 0) ? LoadProfile.SkinName : pSkinName);
 		Ui()->DoLabel(&Section, aTempBuf, FontSize, TEXTALIGN_ML);
 
 		FlagRect.VSplitRight(50.0f, nullptr, &FlagRect);
@@ -1510,12 +1537,12 @@ void CMenus::RenderSettingsProfiles(CUIRect MainView)
 	DummyCheck.VSplitLeft(100.0f, &DummyCheck, &CustomCheck);
 	CustomCheck.VSplitLeft(150.0f, &CustomCheck, nullptr);
 
-	DoButton_CheckBoxAutoVMarginAndSet(&m_Dummy, Localize("Dummy"), (int *)&m_Dummy, &DummyCheck, LineSize);
+	DoButton_CheckBoxAutoVMarginAndSet(&m_Dummy, FeXLocalize("Dummy"), (int *)&m_Dummy, &DummyCheck, LineSize);
 
 	static int s_CustomColorID = 0;
 	CustomCheck.HSplitTop(LineSize, &CustomCheck, nullptr);
 
-	if(DoButton_CheckBox(&s_CustomColorID, Localize("Custom colors"), *pUseCustomColor, &CustomCheck))
+	if(DoButton_CheckBox(&s_CustomColorID, FeXLocalize("Custom colors"), *pUseCustomColor, &CustomCheck))
 	{
 		*pUseCustomColor = *pUseCustomColor ? 0 : 1;
 		SetNeedSendInfo();
@@ -1524,12 +1551,12 @@ void CMenus::RenderSettingsProfiles(CUIRect MainView)
 	LabelMid.VSplitLeft(20.0f, nullptr, &LabelMid);
 	LabelMid.VSplitLeft(160.0f, &LabelMid, &LabelRight);
 
-	DoButton_CheckBoxAutoVMarginAndSet(&g_Config.m_ClApplyProfileSkin, Localize("Save/Load Skin"), &g_Config.m_ClApplyProfileSkin, &LabelMid, LineSize);
-	DoButton_CheckBoxAutoVMarginAndSet(&g_Config.m_ClApplyProfileColors, Localize("Save/Load Colors"), &g_Config.m_ClApplyProfileColors, &LabelMid, LineSize);
-	DoButton_CheckBoxAutoVMarginAndSet(&g_Config.m_ClApplyProfileEmote, Localize("Save/Load Emote"), &g_Config.m_ClApplyProfileEmote, &LabelMid, LineSize);
-	DoButton_CheckBoxAutoVMarginAndSet(&g_Config.m_ClApplyProfileName, Localize("Save/Load Name"), &g_Config.m_ClApplyProfileName, &LabelMid, LineSize);
-	DoButton_CheckBoxAutoVMarginAndSet(&g_Config.m_ClApplyProfileClan, Localize("Save/Load Clan"), &g_Config.m_ClApplyProfileClan, &LabelMid, LineSize);
-	DoButton_CheckBoxAutoVMarginAndSet(&g_Config.m_ClApplyProfileFlag, Localize("Save/Load Flag"), &g_Config.m_ClApplyProfileFlag, &LabelMid, LineSize);
+	DoButton_CheckBoxAutoVMarginAndSet(&g_Config.m_ClApplyProfileSkin, FeXLocalize("Save/Load Skin"), &g_Config.m_ClApplyProfileSkin, &LabelMid, LineSize);
+	DoButton_CheckBoxAutoVMarginAndSet(&g_Config.m_ClApplyProfileColors, FeXLocalize("Save/Load Colors"), &g_Config.m_ClApplyProfileColors, &LabelMid, LineSize);
+	DoButton_CheckBoxAutoVMarginAndSet(&g_Config.m_ClApplyProfileEmote, FeXLocalize("Save/Load Emote"), &g_Config.m_ClApplyProfileEmote, &LabelMid, LineSize);
+	DoButton_CheckBoxAutoVMarginAndSet(&g_Config.m_ClApplyProfileName, FeXLocalize("Save/Load Name"), &g_Config.m_ClApplyProfileName, &LabelMid, LineSize);
+	DoButton_CheckBoxAutoVMarginAndSet(&g_Config.m_ClApplyProfileClan, FeXLocalize("Save/Load Clan"), &g_Config.m_ClApplyProfileClan, &LabelMid, LineSize);
+	DoButton_CheckBoxAutoVMarginAndSet(&g_Config.m_ClApplyProfileFlag, FeXLocalize("Save/Load Flag"), &g_Config.m_ClApplyProfileFlag, &LabelMid, LineSize);
 
 	CUIRect Button;
 	LabelRight.VSplitLeft(150.0f, &LabelRight, nullptr);
@@ -1537,7 +1564,7 @@ void CMenus::RenderSettingsProfiles(CUIRect MainView)
 	LabelRight.HSplitTop(30.0f, &Button, &LabelRight);
 	static CButtonContainer s_LoadButton;
 
-	if(DoButton_Menu(&s_LoadButton, Localize("Load"), 0, &Button))
+	if(DoButton_Menu(&s_LoadButton, FeXLocalize("Load"), 0, &Button))
 	{
 		if(s_SelectedProfile != -1 && s_SelectedProfile < (int)GameClient()->m_SkinProfiles.m_Profiles.size())
 		{
@@ -1585,7 +1612,7 @@ void CMenus::RenderSettingsProfiles(CUIRect MainView)
 
 	LabelRight.HSplitTop(30.0f, &Button, &LabelRight);
 	static CButtonContainer s_SaveButton;
-	if(DoButton_Menu(&s_SaveButton, Localize("Save"), 0, &Button))
+	if(DoButton_Menu(&s_SaveButton, FeXLocalize("Save"), 0, &Button))
 	{
 		GameClient()->m_SkinProfiles.AddProfile(
 			DoColors ? *pColorBody : -1,
@@ -1607,7 +1634,7 @@ void CMenus::RenderSettingsProfiles(CUIRect MainView)
 	{
 		LabelRight.HSplitTop(28.0f, &Button, &LabelRight);
 		static CButtonContainer s_DeleteButton;
-		if(DoButton_Menu(&s_DeleteButton, Localize("Delete"), 0, &Button))
+		if(DoButton_Menu(&s_DeleteButton, FeXLocalize("Delete"), 0, &Button))
 		{
 			if(s_SelectedProfile != -1 && s_SelectedProfile < (int)GameClient()->m_SkinProfiles.m_Profiles.size())
 			{
@@ -1619,7 +1646,7 @@ void CMenus::RenderSettingsProfiles(CUIRect MainView)
 
 		LabelRight.HSplitTop(28.0f, &Button, &LabelRight);
 		static CButtonContainer s_OverrideButton;
-		if(DoButton_Menu(&s_OverrideButton, Localize("Override"), 0, &Button))
+		if(DoButton_Menu(&s_OverrideButton, FeXLocalize("Override"), 0, &Button))
 		{
 			if(s_SelectedProfile != -1 && s_SelectedProfile < (int)GameClient()->m_SkinProfiles.m_Profiles.size())
 			{
@@ -1750,7 +1777,7 @@ void CMenus::RenderSettingsProfiles(CUIRect MainView)
 	}
 	static CButtonContainer s_ProfilesFile;
 	FileButton.VSplitLeft(130.0f, &FileButton, nullptr);
-	if(DoButton_Menu(&s_ProfilesFile, Localize("Profiles file"), 0, &FileButton))
+	if(DoButton_Menu(&s_ProfilesFile, FeXLocalize("Profiles file"), 0, &FileButton))
 	{
 		Storage()->GetCompletePath(IStorage::TYPE_SAVE, PROFILES_FILE, aTempBuf, sizeof(aTempBuf));
 		Client()->ViewFile(aTempBuf);
@@ -2135,7 +2162,7 @@ void CMenus::RenderSettingsWarList(CUIRect MainView)
 	// ======WAR ENTRIES======
 	TrailSettings1.HSplitTop(HeadlineHeight, &Label, &TrailSettings1);
 	Label.VSplitRight(25.0f, &Label, &Button);
-	Ui()->DoLabel(&Label, Localize("War Entries"), HeadlineFontSize, TEXTALIGN_ML);
+	Ui()->DoLabel(&Label, FeXLocalize("War Entries"), HeadlineFontSize, TEXTALIGN_ML);
 	TrailSettings1.HSplitTop(MarginSmall, nullptr, &TrailSettings1);
 
 	static CButtonContainer s_ReverseEntries;
@@ -2277,7 +2304,7 @@ void CMenus::RenderSettingsWarList(CUIRect MainView)
 	// ======WAR ENTRY EDITING======
 	TrailSettings2.HSplitTop(HeadlineHeight, &Label, &TrailSettings2);
 	Label.VSplitRight(25.0f, &Label, &Button);
-	Ui()->DoLabel(&Label, Localize("Edit Entry"), HeadlineFontSize, TEXTALIGN_ML);
+	Ui()->DoLabel(&Label, FeXLocalize("Edit Entry"), HeadlineFontSize, TEXTALIGN_ML);
 	TrailSettings2.HSplitTop(MarginSmall, nullptr, &TrailSettings2);
 	TrailSettings2.HSplitTop(HeadlineFontSize, &Button, &TrailSettings2);
 
@@ -2342,7 +2369,7 @@ void CMenus::RenderSettingsWarList(CUIRect MainView)
 	TrailSettings2.HSplitTop(LineSize * 2.0f, &Button, &TrailSettings2);
 	Button.VSplitMid(&ButtonL, &ButtonR, MarginSmall);
 
-	if(DoButtonLineSize_Menu(&s_OverrideButton, Localize("Override Entry"), 0, &ButtonL, LineSize) && pSelectedEntry)
+	if(DoButtonLineSize_Menu(&s_OverrideButton, FeXLocalize("Override Entry"), 0, &ButtonL, LineSize) && pSelectedEntry)
 	{
 		if(pSelectedEntry && pSelectedType && (str_comp(s_aEntryName, "") != 0 || str_comp(s_aEntryClan, "") != 0))
 		{
@@ -2352,7 +2379,7 @@ void CMenus::RenderSettingsWarList(CUIRect MainView)
 			pSelectedEntry->m_pWarType = pSelectedType;
 		}
 	}
-	if(DoButtonLineSize_Menu(&s_AddButton, Localize("Add Entry"), 0, &ButtonR, LineSize))
+	if(DoButtonLineSize_Menu(&s_AddButton, FeXLocalize("Add Entry"), 0, &ButtonR, LineSize))
 	{
 		if(pSelectedType)
 			GameClient()->m_WarList.AddWarEntry(s_aEntryName, s_aEntryClan, s_aEntryReason, pSelectedType->m_aWarName);
@@ -2371,20 +2398,20 @@ void CMenus::RenderSettingsWarList(CUIRect MainView)
 	TrailSettings2.HSplitBottom(150.0f, nullptr, &TrailSettings2);
 
 	TrailSettings2.HSplitTop(HeadlineHeight, &Label, &TrailSettings2);
-	Ui()->DoLabel(&Label, Localize("Settings"), HeadlineFontSize, TEXTALIGN_ML);
+	Ui()->DoLabel(&Label, FeXLocalize("Settings"), HeadlineFontSize, TEXTALIGN_ML);
 	TrailSettings2.HSplitTop(MarginSmall, nullptr, &TrailSettings2);
 
-	DoButton_CheckBoxAutoVMarginAndSet(&g_Config.m_ClWarListAllowDuplicates, Localize("Allow Duplicate Entries"), &g_Config.m_ClWarListAllowDuplicates, &TrailSettings2, LineSize);
-	DoButton_CheckBoxAutoVMarginAndSet(&g_Config.m_ClWarList, Localize("Enable warlist"), &g_Config.m_ClWarList, &TrailSettings2, LineSize);
-	DoButton_CheckBoxAutoVMarginAndSet(&g_Config.m_ClWarListChat, Localize("Colors in chat"), &g_Config.m_ClWarListChat, &TrailSettings2, LineSize);
-	DoButton_CheckBoxAutoVMarginAndSet(&g_Config.m_ClWarlistPrefixes, Localize("Warlist Prefixes"), &g_Config.m_ClWarlistPrefixes, &TrailSettings2, LineSize);
-	DoButton_CheckBoxAutoVMarginAndSet(&g_Config.m_ClWarListScoreboard, Localize("Colors in scoreboard"), &g_Config.m_ClWarListScoreboard, &TrailSettings2, LineSize);
-	DoButton_CheckBoxAutoVMarginAndSet(&g_Config.m_ClWarListShowClan, Localize("Show clan if war"), &g_Config.m_ClWarListShowClan, &TrailSettings2, LineSize);
+	DoButton_CheckBoxAutoVMarginAndSet(&g_Config.m_ClWarListAllowDuplicates, FeXLocalize("Allow Duplicate Entries"), &g_Config.m_ClWarListAllowDuplicates, &TrailSettings2, LineSize);
+	DoButton_CheckBoxAutoVMarginAndSet(&g_Config.m_ClWarList, FeXLocalize("Enable warlist"), &g_Config.m_ClWarList, &TrailSettings2, LineSize);
+	DoButton_CheckBoxAutoVMarginAndSet(&g_Config.m_ClWarListChat, FeXLocalize("Colors in chat"), &g_Config.m_ClWarListChat, &TrailSettings2, LineSize);
+	DoButton_CheckBoxAutoVMarginAndSet(&g_Config.m_ClWarlistPrefixes, FeXLocalize("Warlist Prefixes"), &g_Config.m_ClWarlistPrefixes, &TrailSettings2, LineSize);
+	DoButton_CheckBoxAutoVMarginAndSet(&g_Config.m_ClWarListScoreboard, FeXLocalize("Colors in scoreboard"), &g_Config.m_ClWarListScoreboard, &TrailSettings2, LineSize);
+	DoButton_CheckBoxAutoVMarginAndSet(&g_Config.m_ClWarListShowClan, FeXLocalize("Show clan if war"), &g_Config.m_ClWarListShowClan, &TrailSettings2, LineSize);
 
 	// ======WAR TYPE EDITING======
 
 	TrailSettings3.HSplitTop(HeadlineHeight, &Label, &TrailSettings3);
-	Ui()->DoLabel(&Label, Localize("War Groups"), HeadlineFontSize, TEXTALIGN_ML);
+	Ui()->DoLabel(&Label, FeXLocalize("War Groups"), HeadlineFontSize, TEXTALIGN_ML);
 	TrailSettings3.HSplitTop(MarginSmall, nullptr, &TrailSettings3);
 
 	static char s_aTypeName[MAX_WARLIST_TYPE_LENGTH];
@@ -2447,9 +2474,9 @@ void CMenus::RenderSettingsWarList(CUIRect MainView)
 	{
 		char aMessage[256];
 		str_format(aMessage, sizeof(aMessage),
-			Localize("Are you sure that you want to remove '%s' from your war groups?"),
+			FeXLocalize("Are you sure that you want to remove '%s' from your war groups?"),
 			m_pRemoveWarType->m_aWarName);
-		PopupConfirm(Localize("Remove War Group"), aMessage, Localize("Yes"), Localize("No"), &CMenus::PopupConfirmRemoveWarType);
+		PopupConfirm(FeXLocalize("Remove War Group"), aMessage, FeXLocalize("Yes"), FeXLocalize("No"), &CMenus::PopupConfirmRemoveWarType);
 	}
 
 	static CLineInput s_TypeNameInput;
@@ -2463,13 +2490,13 @@ void CMenus::RenderSettingsWarList(CUIRect MainView)
 	TrailSettings3.HSplitTop(MarginSmall, nullptr, &TrailSettings3);
 	static unsigned int ColorValue = 0;
 	ColorValue = color_cast<ColorHSLA>(s_GroupColor).Pack(false);
-	ColorHSLA PickedColor = DoLine_ColorPicker(&s_GroupColorPicker, ColorPickerLineSize, ColorPickerLabelSize, ColorPickerLineSpacing, &TrailSettings3, Localize("Color"), &ColorValue, ColorRGBA(1.0f, 1.0f, 1.0f), true);
+	ColorHSLA PickedColor = DoLine_ColorPicker(&s_GroupColorPicker, ColorPickerLineSize, ColorPickerLabelSize, ColorPickerLineSpacing, &TrailSettings3, FeXLocalize("Color"), &ColorValue, ColorRGBA(1.0f, 1.0f, 1.0f), true);
 	s_GroupColor = color_cast<ColorRGBA>(PickedColor);
 
 	TrailSettings3.HSplitTop(LineSize * 2.0f, &Button, &TrailSettings3);
 	Button.VSplitMid(&ButtonL, &ButtonR, MarginSmall);
 	bool OverrideDisabled = NewSelectedType == 0;
-	if(DoButtonLineSize_Menu(&s_OverrideGroupButton, Localize("Override Group"), 0, &ButtonL, LineSize, OverrideDisabled) && pSelectedType)
+	if(DoButtonLineSize_Menu(&s_OverrideGroupButton, FeXLocalize("Override Group"), 0, &ButtonL, LineSize, OverrideDisabled) && pSelectedType)
 	{
 		if(pSelectedType && str_comp(s_aTypeName, "") != 0)
 		{
@@ -2478,7 +2505,7 @@ void CMenus::RenderSettingsWarList(CUIRect MainView)
 		}
 	}
 	bool AddDisabled = str_comp(GameClient()->m_WarList.FindWarType(s_aTypeName)->m_aWarName, "none") != 0 || str_comp(s_aTypeName, "none") == 0;
-	if(DoButtonLineSize_Menu(&s_AddGroupButton, Localize("Add Group"), 0, &ButtonR, LineSize, AddDisabled))
+	if(DoButtonLineSize_Menu(&s_AddGroupButton, FeXLocalize("Add Group"), 0, &ButtonR, LineSize, AddDisabled))
 	{
 		GameClient()->m_WarList.AddWarType(s_aTypeName, s_GroupColor);
 	}
@@ -2486,7 +2513,7 @@ void CMenus::RenderSettingsWarList(CUIRect MainView)
 	// ======ONLINE PLAYER LIST======
 
 	TrailSettings4.HSplitTop(HeadlineHeight, &Label, &TrailSettings4);
-	Ui()->DoLabel(&Label, Localize("Online Players"), HeadlineFontSize, TEXTALIGN_ML);
+	Ui()->DoLabel(&Label, FeXLocalize("Online Players"), HeadlineFontSize, TEXTALIGN_ML);
 	TrailSettings4.HSplitTop(MarginSmall, nullptr, &TrailSettings4);
 
 	CUIRect PlayerList;
@@ -2715,58 +2742,58 @@ void CMenus::RenderSettingsStatusBar(CUIRect MainView)
 	RightView.VSplitRight(MarginSmall, &RightView, nullptr);
 
 	LeftView.HSplitTop(HeadlineHeight, &Label, &LeftView);
-	Ui()->DoLabel(&Label, Localize("Status Bar"), HeadlineFontSize, TEXTALIGN_ML);
+	Ui()->DoLabel(&Label, FeXLocalize("Status Bar"), HeadlineFontSize, TEXTALIGN_ML);
 	LeftView.HSplitTop(MarginSmall, nullptr, &LeftView);
 
-	DoButton_CheckBoxAutoVMarginAndSet(&g_Config.m_ClStatusBar, Localize("Show status bar"), &g_Config.m_ClStatusBar, &LeftView, LineSize);
-	DoButton_CheckBoxAutoVMarginAndSet(&g_Config.m_ClStatusBarLabels, Localize("Show labels on status bar items"), &g_Config.m_ClStatusBarLabels, &LeftView, LineSize);
+	DoButton_CheckBoxAutoVMarginAndSet(&g_Config.m_ClStatusBar, FeXLocalize("Show status bar"), &g_Config.m_ClStatusBar, &LeftView, LineSize);
+	DoButton_CheckBoxAutoVMarginAndSet(&g_Config.m_ClStatusBarLabels, FeXLocalize("Show labels on status bar items"), &g_Config.m_ClStatusBarLabels, &LeftView, LineSize);
 	LeftView.HSplitTop(LineSize, &Button, &LeftView);
-	Ui()->DoScrollbarOption(&g_Config.m_ClStatusBarHeight, &g_Config.m_ClStatusBarHeight, &Button, Localize("Status bar height"), 1, 16);
+	Ui()->DoScrollbarOption(&g_Config.m_ClStatusBarHeight, &g_Config.m_ClStatusBarHeight, &Button, FeXLocalize("Status bar height"), 1, 16);
 
 	LeftView.HSplitTop(HeadlineHeight, &Label, &LeftView);
 
 	LeftView.HSplitTop(HeadlineHeight, &Label, &LeftView);
-	Ui()->DoLabel(&Label, Localize("Local Time"), HeadlineFontSize, TEXTALIGN_ML);
+	Ui()->DoLabel(&Label, FeXLocalize("Local Time"), HeadlineFontSize, TEXTALIGN_ML);
 	LeftView.HSplitTop(MarginSmall, nullptr, &LeftView);
-	DoButton_CheckBoxAutoVMarginAndSet(&g_Config.m_ClStatusBar12HourClock, Localize("Use 12 hour clock"), &g_Config.m_ClStatusBar12HourClock, &LeftView, LineSize);
-	DoButton_CheckBoxAutoVMarginAndSet(&g_Config.m_ClStatusBarLocalTimeSeocnds, Localize("Show seconds on clock"), &g_Config.m_ClStatusBarLocalTimeSeocnds, &LeftView, LineSize);
+	DoButton_CheckBoxAutoVMarginAndSet(&g_Config.m_ClStatusBar12HourClock, FeXLocalize("Use 12 hour clock"), &g_Config.m_ClStatusBar12HourClock, &LeftView, LineSize);
+	DoButton_CheckBoxAutoVMarginAndSet(&g_Config.m_ClStatusBarLocalTimeSeocnds, FeXLocalize("Show seconds on clock"), &g_Config.m_ClStatusBarLocalTimeSeocnds, &LeftView, LineSize);
 	LeftView.HSplitTop(HeadlineHeight, &Label, &LeftView);
 
 	LeftView.HSplitTop(HeadlineHeight, &Label, &LeftView);
-	Ui()->DoLabel(&Label, Localize("Colors"), HeadlineFontSize, TEXTALIGN_ML);
+	Ui()->DoLabel(&Label, FeXLocalize("Colors"), HeadlineFontSize, TEXTALIGN_ML);
 	LeftView.HSplitTop(MarginSmall, nullptr, &LeftView);
 	static CButtonContainer s_StatusbarColor, s_StatusbarTextColor;
 
-	DoLine_ColorPicker(&s_StatusbarColor, ColorPickerLineSize, ColorPickerLabelSize, ColorPickerLineSpacing, &LeftView, Localize("Status bar color"), &g_Config.m_ClStatusBarColor, ColorRGBA(0.0f, 0.0f, 0.0f), false);
-	DoLine_ColorPicker(&s_StatusbarTextColor, ColorPickerLineSize, ColorPickerLabelSize, ColorPickerLineSpacing, &LeftView, Localize("Text color"), &g_Config.m_ClStatusBarTextColor, ColorRGBA(1.0f, 1.0f, 1.0f), false);
+	DoLine_ColorPicker(&s_StatusbarColor, ColorPickerLineSize, ColorPickerLabelSize, ColorPickerLineSpacing, &LeftView, FeXLocalize("Status bar color"), &g_Config.m_ClStatusBarColor, ColorRGBA(0.0f, 0.0f, 0.0f), false);
+	DoLine_ColorPicker(&s_StatusbarTextColor, ColorPickerLineSize, ColorPickerLabelSize, ColorPickerLineSpacing, &LeftView, FeXLocalize("Text color"), &g_Config.m_ClStatusBarTextColor, ColorRGBA(1.0f, 1.0f, 1.0f), false);
 	LeftView.HSplitTop(LineSize, &Button, &LeftView);
-	Ui()->DoScrollbarOption(&g_Config.m_ClStatusBarAlpha, &g_Config.m_ClStatusBarAlpha, &Button, Localize("Status bar alpha"), 0, 100);
+	Ui()->DoScrollbarOption(&g_Config.m_ClStatusBarAlpha, &g_Config.m_ClStatusBarAlpha, &Button, FeXLocalize("Status bar alpha"), 0, 100);
 	LeftView.HSplitTop(LineSize, &Button, &LeftView);
-	Ui()->DoScrollbarOption(&g_Config.m_ClStatusBarTextAlpha, &g_Config.m_ClStatusBarTextAlpha, &Button, Localize("Text alpha"), 0, 100);
+	Ui()->DoScrollbarOption(&g_Config.m_ClStatusBarTextAlpha, &g_Config.m_ClStatusBarTextAlpha, &Button, FeXLocalize("Text alpha"), 0, 100);
 
 	RightView.HSplitTop(HeadlineHeight, &Label, &RightView);
-	Ui()->DoLabel(&Label, Localize("Status Bar Codes:"), HeadlineFontSize, TEXTALIGN_ML);
+	Ui()->DoLabel(&Label, FeXLocalize("Status Bar Codes:"), HeadlineFontSize, TEXTALIGN_ML);
 	RightView.HSplitTop(MarginSmall, nullptr, &RightView);
 	RightView.HSplitTop(LineSize, &Label, &RightView);
-	Ui()->DoLabel(&Label, Localize("a = Angle"), FontSize, TEXTALIGN_ML);
+	Ui()->DoLabel(&Label, FeXLocalize("a = Angle"), FontSize, TEXTALIGN_ML);
 	RightView.HSplitTop(LineSize, &Label, &RightView);
-	Ui()->DoLabel(&Label, Localize("p = Ping"), FontSize, TEXTALIGN_ML);
+	Ui()->DoLabel(&Label, FeXLocalize("p = Ping"), FontSize, TEXTALIGN_ML);
 	RightView.HSplitTop(LineSize, &Label, &RightView);
-	Ui()->DoLabel(&Label, Localize("d = Prediction"), FontSize, TEXTALIGN_ML);
+	Ui()->DoLabel(&Label, FeXLocalize("d = Prediction"), FontSize, TEXTALIGN_ML);
 	RightView.HSplitTop(LineSize, &Label, &RightView);
-	Ui()->DoLabel(&Label, Localize("c = Position"), FontSize, TEXTALIGN_ML);
+	Ui()->DoLabel(&Label, FeXLocalize("c = Position"), FontSize, TEXTALIGN_ML);
 	RightView.HSplitTop(LineSize, &Label, &RightView);
-	Ui()->DoLabel(&Label, Localize("l = Local Time"), FontSize, TEXTALIGN_ML);
+	Ui()->DoLabel(&Label, FeXLocalize("l = Local Time"), FontSize, TEXTALIGN_ML);
 	RightView.HSplitTop(LineSize, &Label, &RightView);
-	Ui()->DoLabel(&Label, Localize("r = Race Time"), FontSize, TEXTALIGN_ML);
+	Ui()->DoLabel(&Label, FeXLocalize("r = Race Time"), FontSize, TEXTALIGN_ML);
 	RightView.HSplitTop(LineSize, &Label, &RightView);
-	Ui()->DoLabel(&Label, Localize("f = FPS"), FontSize, TEXTALIGN_ML);
+	Ui()->DoLabel(&Label, FeXLocalize("f = FPS"), FontSize, TEXTALIGN_ML);
 	RightView.HSplitTop(LineSize, &Label, &RightView);
-	Ui()->DoLabel(&Label, Localize("v = Velocity"), FontSize, TEXTALIGN_ML);
+	Ui()->DoLabel(&Label, FeXLocalize("v = Velocity"), FontSize, TEXTALIGN_ML);
 	RightView.HSplitTop(LineSize, &Label, &RightView);
-	Ui()->DoLabel(&Label, Localize("z = Zoom"), FontSize, TEXTALIGN_ML);
+	Ui()->DoLabel(&Label, FeXLocalize("z = Zoom"), FontSize, TEXTALIGN_ML);
 	RightView.HSplitTop(LineSize, &Label, &RightView);
-	Ui()->DoLabel(&Label, Localize("_ or \' \' = Space"), FontSize, TEXTALIGN_ML);
+	Ui()->DoLabel(&Label, FeXLocalize("_ or \' \' = Space"), FontSize, TEXTALIGN_ML);
 	static int s_SelectedItem = -1;
 	static int s_TypeSelectedOld = -1;
 
@@ -2782,13 +2809,13 @@ void CMenus::RenderSettingsStatusBar(CUIRect MainView)
 	StatusScheme.VSplitMid(&StatusButtons, &StatusScheme, MarginSmall);
 	StatusScheme.VSplitMid(&Label, &StatusScheme, MarginSmall);
 	StatusScheme.VSplitMid(&StatusScheme, &Button, MarginSmall);
-	if(DoButton_Menu(&s_ApplyButton, Localize("Apply"), 0, &Button))
+	if(DoButton_Menu(&s_ApplyButton, FeXLocalize("Apply"), 0, &Button))
 	{
 		GameClient()->m_StatusBar.ApplyStatusBarScheme(g_Config.m_ClStatusBarScheme);
 		GameClient()->m_StatusBar.UpdateStatusBarScheme(g_Config.m_ClStatusBarScheme);
 		s_SelectedItem = -1;
 	}
-	Ui()->DoLabel(&Label, Localize("Status Scheme:"), FontSize, TEXTALIGN_MR);
+	Ui()->DoLabel(&Label, FeXLocalize("Status Scheme:"), FontSize, TEXTALIGN_MR);
 	static CLineInput s_StatusScheme(g_Config.m_ClStatusBarScheme, sizeof(g_Config.m_ClStatusBarScheme));
 	s_StatusScheme.SetEmptyText("");
 	Ui()->DoEditBox(&s_StatusScheme, &StatusScheme, EditBoxFontSize);
@@ -2816,13 +2843,13 @@ void CMenus::RenderSettingsStatusBar(CUIRect MainView)
 	}
 	CUIRect ButtonL, ButtonR;
 	StatusButtons.VSplitMid(&ButtonL, &ButtonR, MarginSmall);
-	if(DoButton_Menu(&s_AddButton, Localize("Add Item"), 0, &ButtonL) && s_TypeSelectedOld >= 0)
+	if(DoButton_Menu(&s_AddButton, FeXLocalize("Add Item"), 0, &ButtonL) && s_TypeSelectedOld >= 0)
 	{
 		GameClient()->m_StatusBar.m_StatusBarItems.push_back(&GameClient()->m_StatusBar.m_StatusItemTypes[s_TypeSelectedOld]);
 		GameClient()->m_StatusBar.UpdateStatusBarScheme(g_Config.m_ClStatusBarScheme);
 		s_SelectedItem = (int)GameClient()->m_StatusBar.m_StatusBarItems.size() - 1;
 	}
-	if(DoButton_Menu(&s_RemoveButton, Localize("Remove Item"), 0, &ButtonR) && s_SelectedItem >= 0)
+	if(DoButton_Menu(&s_RemoveButton, FeXLocalize("Remove Item"), 0, &ButtonR) && s_SelectedItem >= 0)
 	{
 		GameClient()->m_StatusBar.m_StatusBarItems.erase(GameClient()->m_StatusBar.m_StatusBarItems.begin() + s_SelectedItem);
 		GameClient()->m_StatusBar.UpdateStatusBarScheme(g_Config.m_ClStatusBarScheme);
@@ -3015,7 +3042,7 @@ void CMenus::RenderSettingsBindWheel(CUIRect MainView)
 
 	LeftView.HSplitTop(LineSize, &Button, &LeftView);
 	Button.VSplitLeft(100.0f, &Label, &Button);
-	Ui()->DoLabel(&Label, Localize("Name:"), 14.0f, TEXTALIGN_ML);
+	Ui()->DoLabel(&Label, FeXLocalize("Name:"), 14.0f, TEXTALIGN_ML);
 	static CLineInput s_NameInput;
 	s_NameInput.SetBuffer(s_aBindName, sizeof(s_aBindName));
 	s_NameInput.SetEmptyText("Name");
@@ -3024,17 +3051,17 @@ void CMenus::RenderSettingsBindWheel(CUIRect MainView)
 	LeftView.HSplitTop(MarginSmall, nullptr, &LeftView);
 	LeftView.HSplitTop(LineSize, &Button, &LeftView);
 	Button.VSplitLeft(100.0f, &Label, &Button);
-	Ui()->DoLabel(&Label, Localize("Command:"), 14.0f, TEXTALIGN_ML);
+	Ui()->DoLabel(&Label, FeXLocalize("Command:"), 14.0f, TEXTALIGN_ML);
 	static CLineInput s_BindInput;
 	s_BindInput.SetBuffer(s_aBindCommand, sizeof(s_aBindCommand));
-	s_BindInput.SetEmptyText(Localize("Command"));
+	s_BindInput.SetEmptyText(FeXLocalize("Command"));
 	Ui()->DoEditBox(&s_BindInput, &Button, 12.0f);
 
 	static CButtonContainer s_AddButton, s_RemoveButton, s_OverrideButton;
 
 	LeftView.HSplitTop(MarginSmall, nullptr, &LeftView);
 	LeftView.HSplitTop(LineSize, &Button, &LeftView);
-	if(DoButton_Menu(&s_OverrideButton, Localize("Override Selected"), 0, &Button) && s_SelectedBindIndex >= 0)
+	if(DoButton_Menu(&s_OverrideButton, FeXLocalize("Override Selected"), 0, &Button) && s_SelectedBindIndex >= 0)
 	{
 		CBindWheel::SBind TempBind;
 		if(str_length(s_aBindName) == 0)
@@ -3049,7 +3076,7 @@ void CMenus::RenderSettingsBindWheel(CUIRect MainView)
 	LeftView.HSplitTop(LineSize, &Button, &LeftView);
 	CUIRect ButtonAdd, ButtonRemove;
 	Button.VSplitMid(&ButtonRemove, &ButtonAdd, MarginSmall);
-	if(DoButton_Menu(&s_AddButton, Localize("Add Bind"), 0, &ButtonAdd))
+	if(DoButton_Menu(&s_AddButton, FeXLocalize("Add Bind"), 0, &ButtonAdd))
 	{
 		CBindWheel::SBind TempBind;
 		if(str_length(s_aBindName) == 0)
@@ -3060,7 +3087,7 @@ void CMenus::RenderSettingsBindWheel(CUIRect MainView)
 		GameClient()->m_Bindwheel.AddBind(TempBind.m_aName, s_aBindCommand);
 		s_SelectedBindIndex = static_cast<int>(GameClient()->m_Bindwheel.m_vBinds.size()) - 1;
 	}
-	if(DoButton_Menu(&s_RemoveButton, Localize("Remove Bind"), 0, &ButtonRemove) && s_SelectedBindIndex >= 0)
+	if(DoButton_Menu(&s_RemoveButton, FeXLocalize("Remove Bind"), 0, &ButtonRemove) && s_SelectedBindIndex >= 0)
 	{
 		GameClient()->m_Bindwheel.RemoveBind(s_SelectedBindIndex);
 		s_SelectedBindIndex = -1;
@@ -3068,11 +3095,11 @@ void CMenus::RenderSettingsBindWheel(CUIRect MainView)
 
 	LeftView.HSplitTop(MarginSmall, nullptr, &LeftView);
 	LeftView.HSplitTop(LineSize, &Label, &LeftView);
-	Ui()->DoLabel(&Label, Localize("Use left mouse to select"), 14.0f, TEXTALIGN_ML);
+	Ui()->DoLabel(&Label, FeXLocalize("Use left mouse to select"), 14.0f, TEXTALIGN_ML);
 	LeftView.HSplitTop(LineSize, &Label, &LeftView);
-	Ui()->DoLabel(&Label, Localize("Use right mouse to swap with selected"), 14.0f, TEXTALIGN_ML);
+	Ui()->DoLabel(&Label, FeXLocalize("Use right mouse to swap with selected"), 14.0f, TEXTALIGN_ML);
 	LeftView.HSplitTop(LineSize, &Label, &LeftView);
-	Ui()->DoLabel(&Label, Localize("Use middle mouse select without copy"), 14.0f, TEXTALIGN_ML);
+	Ui()->DoLabel(&Label, FeXLocalize("Use middle mouse select without copy"), 14.0f, TEXTALIGN_ML);
 
 	// Do Settings Key
 	CKeyInfo Key = CKeyInfo{"Bind Wheel Key", "+bindwheel", 0, 0};
@@ -3098,7 +3125,7 @@ void CMenus::RenderSettingsBindWheel(CUIRect MainView)
 	Button.VSplitLeft(120.0f, &KeyLabel, &Button);
 	Button.VSplitLeft(100.0f, &Button, nullptr);
 	char aBuf[64];
-	str_format(aBuf, sizeof(aBuf), "%s:", Localize((const char *)Key.m_pName));
+	str_format(aBuf, sizeof(aBuf), "%s:", FeXLocalize((const char *)Key.m_pName));
 
 	Ui()->DoLabel(&KeyLabel, aBuf, 14.0f, TEXTALIGN_ML);
 	int OldId = Key.m_KeyId, OldModifierCombination = Key.m_ModifierCombination, NewModifierCombination;
@@ -3112,7 +3139,7 @@ void CMenus::RenderSettingsBindWheel(CUIRect MainView)
 	}
 	LeftView.HSplitBottom(LineSize, &LeftView, &Button);
 
-	DoButton_CheckBoxAutoVMarginAndSet(&g_Config.m_ClResetBindWheelMouse, Localize("Reset position of mouse when opening bindwheel"), &g_Config.m_ClResetBindWheelMouse, &Button, LineSize);
+	DoButton_CheckBoxAutoVMarginAndSet(&g_Config.m_ClResetBindWheelMouse, FeXLocalize("Reset position of mouse when opening bindwheel"), &g_Config.m_ClResetBindWheelMouse, &Button, LineSize);
 
 	CUIRect CopyRight;
 	MainView.HSplitBottom(20.0f, 0, &CopyRight);
@@ -3187,7 +3214,7 @@ void CMenus::RenderBar(CUIRect MainView)
     static int s_CurTab = 0;
     const int TabCount = TABS;
     static CButtonContainer s_aPageTabs[TABS] = {};
-    const char *apTabNames[TABS] = { Localize("QuickJoin"), Localize("Fonts") };
+    const char *apTabNames[TABS] = { FeXLocalize("QuickJoin"), FeXLocalize("Fonts") };
     float gap = 2.0f * scale;
     float tabWidth = (FullTabBar.w - gap * (TabCount - 1)) / TabCount;
     for(int i = 0; i < TabCount; i++)
@@ -3567,8 +3594,8 @@ void CMenus::RenderPlayerPanelTopRight(const CUIRect &MainView)
 //         {
 //             io_close(hFile);
 //             char aErrorMsg[IO_MAX_PATH_LENGTH * 2 + 128];
-//             str_format(aErrorMsg, sizeof(aErrorMsg), Localize("Failed to backup current configuration to '%s'."), aBackupRelativePath);
-//             PopupMessage(Localize("Error"), aErrorMsg, Localize("Ok"));
+//             str_format(aErrorMsg, sizeof(aErrorMsg), FeXLocalize("Failed to backup current configuration to '%s'."), aBackupRelativePath);
+//             PopupMessage(FeXLocalize("Error"), aErrorMsg, FeXLocalize("Ok"));
 //             return;
 //         }
 //     }
@@ -3585,8 +3612,8 @@ void CMenus::RenderPlayerPanelTopRight(const CUIRect &MainView)
 //             if(BytesWritten != DataSize)
 //             {
 //                 char aErrorMsg[IO_MAX_PATH_LENGTH * 2 + 128];
-//                 str_format(aErrorMsg, sizeof(aErrorMsg), Localize("Failed to write loaded configuration to '%s'."), pActiveConfigFilename);
-//                 PopupMessage(Localize("Error"), aErrorMsg, Localize("Ok"));
+//                 str_format(aErrorMsg, sizeof(aErrorMsg), FeXLocalize("Failed to write loaded configuration to '%s'."), pActiveConfigFilename);
+//                 PopupMessage(FeXLocalize("Error"), aErrorMsg, FeXLocalize("Ok"));
 //             }
 //             else
 //             {
@@ -3596,16 +3623,16 @@ void CMenus::RenderPlayerPanelTopRight(const CUIRect &MainView)
 //         else
 //         {
 //             char aErrorMsg[IO_MAX_PATH_LENGTH * 2 + 128];
-//             str_format(aErrorMsg, sizeof(aErrorMsg), Localize("Failed to open '%s' for writing the loaded configuration."), pActiveConfigFilename);
-//             PopupMessage(Localize("Error"), aErrorMsg, Localize("Ok"));
+//             str_format(aErrorMsg, sizeof(aErrorMsg), FeXLocalize("Failed to open '%s' for writing the loaded configuration."), pActiveConfigFilename);
+//             PopupMessage(FeXLocalize("Error"), aErrorMsg, FeXLocalize("Ok"));
 //         }
 //         free(pData);
 //     }
 //     else
 //     {
 //         char aErrorMsg[IO_MAX_PATH_LENGTH * 2 + 128];
-//         str_format(aErrorMsg, sizeof(aErrorMsg), Localize("Failed to read configuration file '%s'."), m_aConfigToLoad);
-//         PopupMessage(Localize("Error"), aErrorMsg, Localize("Ok"));
+//         str_format(aErrorMsg, sizeof(aErrorMsg), FeXLocalize("Failed to read configuration file '%s'."), m_aConfigToLoad);
+//         PopupMessage(FeXLocalize("Error"), aErrorMsg, FeXLocalize("Ok"));
 //     }
     
 //     m_aConfigToLoad[0] = '\0';
@@ -3641,8 +3668,8 @@ void CMenus::RenderPlayerPanelTopRight(const CUIRect &MainView)
 // 	else
 // 	{
 // 		char aErrorMsg[IO_MAX_PATH_LENGTH + 128];
-// 		str_format(aErrorMsg, sizeof(aErrorMsg), Localize("Failed to delete configuration file '%s'."), aFilePath);
-// 		PopupMessage(Localize("Error"), aErrorMsg, Localize("Ok"));
+// 		str_format(aErrorMsg, sizeof(aErrorMsg), FeXLocalize("Failed to delete configuration file '%s'."), aFilePath);
+// 		PopupMessage(FeXLocalize("Error"), aErrorMsg, FeXLocalize("Ok"));
 // 		log_error("menus", "Failed to remove file '%s' from storage type %d", aFilePath, IStorage::TYPE_SAVE);
 // 	}
 
@@ -3758,20 +3785,20 @@ void CMenus::RenderPlayerPanelTopRight(const CUIRect &MainView)
 //             {
 //                 log_error("menus_save_debug", "Failed to write all data to '%s' (wrote %u/%u bytes)",
 //                           aTargetPath, (unsigned)BytesWritten, DataSize);
-//                 PopupMessage(Localize("Error"), Localize("Failed to write backup configuration file."), Localize("Ok"));
+//                 PopupMessage(FeXLocalize("Error"), FeXLocalize("Failed to write backup configuration file."), FeXLocalize("Ok"));
 //             }
 //         }
 //         else
 //         {
 //             log_error("menus_save_debug", "Failed to open target backup file '%s' for writing", aTargetPath);
-//             PopupMessage(Localize("Error"), Localize("Failed to create backup configuration file."), Localize("Ok"));
+//             PopupMessage(FeXLocalize("Error"), FeXLocalize("Failed to create backup configuration file."), FeXLocalize("Ok"));
 //         }
 //         free(pData);
 //     }
 //     else
 //     {
 //         log_error("menus_save_debug", "Failed to read source config file '%s' for backup", pSourceFilename);
-//         PopupMessage(Localize("Error"), Localize("Failed to read current settings for backup."), Localize("Ok"));
+//         PopupMessage(FeXLocalize("Error"), FeXLocalize("Failed to read current settings for backup."), FeXLocalize("Ok"));
 //     }
 // }
 
@@ -3788,8 +3815,8 @@ void CMenus::RenderPlayerPanelTopRight(const CUIRect &MainView)
 // 	m_ConfigToLoadIsFex = IsFexConfig;
 
 // 	char aMsg[IO_MAX_PATH_LENGTH + 256];
-// 	str_format(aMsg, sizeof(aMsg), Localize("Loading the profile '%s' requires a client restart to take full effect. Restart now?"), pSaveFilename);
-// 	PopupConfirm(Localize("Load Config Profile"), aMsg, Localize("Restart"), Localize("Cancel"), &CMenus::PopupConfirmLoadConfig);
+// 	str_format(aMsg, sizeof(aMsg), FeXLocalize("Loading the profile '%s' requires a client restart to take full effect. Restart now?"), pSaveFilename);
+// 	PopupConfirm(FeXLocalize("Load Config Profile"), aMsg, FeXLocalize("Restart"), FeXLocalize("Cancel"), &CMenus::PopupConfirmLoadConfig);
 // }
 
 // void CMenus::DeleteSavedConfig(const char *pSaveFilename, bool IsFexConfig)
@@ -3805,8 +3832,8 @@ void CMenus::RenderPlayerPanelTopRight(const CUIRect &MainView)
 // 	m_ConfigToDeleteIsFex = IsFexConfig;
 
 // 	char aMsg[IO_MAX_PATH_LENGTH + 128];
-// 	str_format(aMsg, sizeof(aMsg), Localize("Are you sure you want to permanently delete the profile '%s'?"), pSaveFilename);
-// 	PopupConfirm(Localize("Delete Config Profile"), aMsg, Localize("Delete"), Localize("Cancel"), &CMenus::PopupConfirmDeleteConfig);
+// 	str_format(aMsg, sizeof(aMsg), FeXLocalize("Are you sure you want to permanently delete the profile '%s'?"), pSaveFilename);
+// 	PopupConfirm(FeXLocalize("Delete Config Profile"), aMsg, FeXLocalize("Delete"), FeXLocalize("Cancel"), &CMenus::PopupConfirmDeleteConfig);
 // }
 
 

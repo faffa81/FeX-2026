@@ -1,3 +1,4 @@
+#include "fexlanguage.h"
 #include <engine/client.h>
 #include <engine/shared/config.h>
 #include <engine/shared/protocol.h>
@@ -358,6 +359,7 @@ void CFex::OnConsoleInit()
 }
 void CFex::OnInit()
 {
+	g_FeXLanguage.Init(Storage());
 	// On client load
 	TextRender()->SetCustomFace(g_Config.m_ClCustomFont);
 
