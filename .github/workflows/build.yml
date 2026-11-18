@@ -21,14 +21,9 @@ jobs:
       with:
         submodules: recursive
 
-    - name: Set up Rust
-      uses: dtolnay/rust-toolchain@stable
-
-    - name: Cache Rust dependencies
-      uses: Swatinem/rust-cache@v2
-
     # Same configuration that is used for local FeX builds: Ninja, MSVC, client
-    # only. Build output goes to files so a failure prints just the error tail
+    # only. The runner image already ships a Rust toolchain for the rust-bridge
+    # crate. Build output goes to files so a failure prints just the error tail
     # instead of the whole compile log.
     - name: Configure and build
       shell: cmd
