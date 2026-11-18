@@ -41,8 +41,18 @@ jobs:
         -DCMAKE_BUILD_TYPE=RelWithDebInfo
         -DCLIENT=ON -DSERVER=OFF -DTOOLS=OFF -DDOWNLOAD_GTEST=OFF
 
+    # Output goes to a file so a failure only prints the tail, which keeps the
+    # job log readable and shows the actual compiler error.
     - name: Build client
-      run: cmake --build build --parallel
+      shell: pwsh
+      run: |
+        cmake --build build --parallel *> build.log
+        $status = $LASTEXITCODE
+        if ($status -ne 0) {
+          Write-Host "Build failed, last lines of the log:"
+          Get-Content build.log -Tail 60
+        }
+        exit $status
 
     - name: Upload client
       uses: actions/upload-artifact@v4
